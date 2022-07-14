@@ -1,9 +1,9 @@
-![logo](logo.jpeg)
+![logo](image/logo.jpeg)
 
 # My study <small>3.5</small>
 
-> 一个神奇的文档网站生成器。
+> 记录我的java学习之路
 
 
-[GitHub](https://github.com/docsifyjs/docsify/)
+[MY GitHub](https://github.com/Fankeys/Fankeys.github.io)
 [Get Started](README.md)
