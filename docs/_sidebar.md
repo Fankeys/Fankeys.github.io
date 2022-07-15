@@ -8,3 +8,4 @@
 * 服务器技术
   * [javaSE](服务器/javase/)
   * [javaweb](服务器/javaweb/)
+  * [一些收集](服务器/小指令and快捷键/)
