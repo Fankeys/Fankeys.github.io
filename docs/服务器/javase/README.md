@@ -1163,3 +1163,356 @@ public class CopyFileDemo {
 ~~~
 
 ![11](../javase-image/11.png)
+
+### Path接口与Files工具类
+
+~~~java
+public class PathFileDemo {
+
+
+    public static void main(String[] args) {
+        File file = new File("D:/test/test.txt");
+        //path
+        Path p1 = Paths.get("D:/test", "test.txt");
+        System.out.println(p1);//输出路径：D:\test\test.txt
+
+        Path p2 = file.toPath();
+        System.out.println(p2);//输出路径：D:\test\test.txt
+        Path p3 = FileSystems.getDefault().getPath("D:/test", "test.txt");
+        System.out.println(p3);//输出路径：D:\test\test.txt
+
+        //写入文件
+        Path p4 = Paths.get("D:/test/Demo.txt");
+//        String info = "san刀两断";
+//        try {
+//            Files.write(p4, info.getBytes("UTf-8"), StandardOpenOption.APPEND);
+//        } catch (UnsupportedEncodingException e) {
+//            e.printStackTrace();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+
+        //读文件
+        try {
+            byte[] bytes = Files.readAllBytes(p4);
+            System.out.println(new String(bytes));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+//        try {
+//            //复制文件
+//            Files.copy(p4, Paths.get("e:/Demo.txt"), StandardCopyOption.REPLACE_EXISTING);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+
+//        try {
+//            //移动文件
+//            Files.move(p4, Paths.get("e:/Demo.txt"), StandardCopyOption.REPLACE_EXISTING);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+
+//        try {
+//            //删除文件
+//            Files.delete(p4);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+
+        //创建新目录，除了最后一个部件，其他必须是已存在的
+        try{
+            Files.createDirectories(Paths.get("c:/BB"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        //创建文件
+        try{
+            Files.createFile(Paths.get("d:/BB/c.txt"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        //添加前、后缀创建临时文件或临时目录
+//        Path newPath = Files.createTempFile(dir,prefix,suffix);
+//        Path newPath = Files.createTempFile(dir,prefix);
+
+    }
+}
+
+~~~
+
+
+
+![12](../javase-image/12.png)
+
+![13](../javase-image/13.png)
+
+![16](../javase-image/16.png)
+
+![14](../javase-image/14.png)
+
+![15](../javase-image/15.png)
+
+# 集合
+
+![17](../javase-image/17.png)
+
+## Collection接口
+
+![18](../javase-image/18.png)
+
+### List接口
+
+![19](../javase-image/19.png)
+
+~~~java
+
+/**
+ * Collection接口:用于存储单个对象的集合
+ * List接口：
+ * 1、有序的
+ * 2、允许多个空元素
+ * 3、允许重复元素
+ * 4、具体的常用的实现有：ArrayList,Vector,LinkedList
+ * 在实际开发中，如何选择：
+ * 1、安全性问题
+ * 2、是否频繁插入，删除操作：LinkedList
+ * 3、是否存储后遍历
+ *
+ */
+public class ListDemo {
+
+    /**
+     * linkedList
+     * 1、实现原理：采用双向链表结构实现
+     * 2、适合插入，删除操作，性能高
+     * 3、线程不安全
+     */
+    private static void linkList(){
+        LinkedList<String> list = new LinkedList<>();
+        list.add("啊哈哈");
+        list.add("的哈回复");
+        list.add("发送咯");
+        for (String s : list) {
+            System.out.println(s);
+        }
+    }
+
+    /**
+     * Vector
+     * 1、实现原理：采用动态数组实现，默认构造方法创建了一个大小为10的对象数组
+     * 2、扩充的算法：增量为0时，扩充为原来大小的两倍，当增量大于0时，扩充为原来大小——增量
+     * 3、不适合删除或者插入操作
+     * 4、为了防止数组动态扩充次数过多建议，创建Vector时，给定初始容量
+     * 5、线程安全，适合在多线程访问时使用
+     *
+     */
+    private static void vector(){
+        Vector<String> vc = new Vector<>();
+        vc.add("啊哈哈");
+        vc.add("的哈回复");
+        vc.add("发送咯");
+
+        for (String v:vc
+             ) {
+            System.out.println(v);
+        }
+    }
+
+    /**
+     * ArrayList
+     * 1、实现原理：采用动态对象数组实现，默认构造方法创建了一个空数组
+     * 2、第一次添加元素，扩充容量为10，之后的扩充算法：原数组大小+原数组大小/2
+     * 3、不适合进行删除或者插入操作
+     * 4、为了防止数组动态扩充过多，建议创建ArrayList时，给定初始容量
+     * 5、线程不安全，适合在单线程访问时使用
+     */
+    private static void arrayList(){
+        //使用集合来存储多个不同类型的元素，实际开发不建议，直接加<>中间写限制类型
+        List<String> list = new ArrayList<>();
+        list.add("啊哈哈");
+        list.add("的哈回复");
+        list.add("发送咯");
+        for (String s : list) {
+            System.out.println(s);
+        }
+        System.out.println(list.contains("发送咯"));
+        list.remove("啊哈哈");
+        System.out.println(list.size());
+        String[] array = list.toArray(new String[]{});
+        for (String arr:array
+             ) {
+            System.out.println(arr);
+        }
+    }
+
+    public static void main(String[] args) {
+        vector();
+    }
+}
+
+~~~
+
+### Set接口
+
+![20](../javase-image/20.png)
+
+~~~java
+/**
+ * Set接口:
+ * 1、无序的（不保证顺序）
+ * 2、数据不可重复的
+ * 3、最多有一个null数据
+ * HashSet、TreeSet、LinkedHashSet
+ *
+ * 如果要排序，选择treeSet
+ * 如果不要排序，也不用保证顺序,选择hashSet
+ * 不要排序，要保证顺序，选择LinkedHashSet
+ *
+ */
+public class SetDemo {
+
+    /**
+     * 哈希表和连接列表实现，
+     * 维护着一个运行于所有条目的双重连接列表，此连接列表定义了迭代顺序，即按照将元素的插入顺序进行迭代。
+     *
+     */
+    private static void linkedHashSet(){
+        LinkedHashSet<Student> set = new LinkedHashSet<>();
+        Student s1 = new Student("李帆",24);
+        Student s2 = new Student("李饭",23);
+        Student s3 = new Student("李凡",22);
+        Student s4 = new Student("李",24);
+        set.add(s1);
+        set.add(s2);
+        set.add(s3);
+        set.add(s4);
+        for (Student stu:set
+        ) {
+            System.out.println(stu);
+        }
+    }
+
+    /**
+     * treeSet
+     * 1、有序的，基于TreeMap(二叉树数据结构)，对象需要通过对象比较器Comparator比较大小
+     *    对象比较器还可以取出重复元素，如果自定义的对象的数据类没有实现比较器接口，将无法添加
+     *    到treeSet集合中
+     * 2、
+     */
+    private static void treeSet(){
+        TreeSet<Student> tree = new TreeSet<>(new StudentComparator());
+        Student s1 = new Student("李帆",24);
+        Student s2 = new Student("李饭",23);
+        Student s3 = new Student("李凡",22);
+        Student s4 = new Student("李",24);
+        tree.add(s1);
+        tree.add(s2);
+        tree.add(s3);
+        tree.add(s4);
+        System.out.println(tree.size());
+
+        for (Student stu:tree
+             ) {
+            System.out.println(stu);
+        }
+
+    }
+
+    /**
+     * HashSet
+     * 1、实现原理，基于哈希表（hashMap）实现
+     * 2、不允许重复，可以有一个NULL元素
+     * 3、不保证顺序恒久不变
+     * 4、添加元素时把元素作为hashMap的Key来存储，Value固定使用一个Object对象填充
+     * 5、排除重复元素时通过equals来检查对象是否相同，加入重复的对象，新对象会顶替原对象
+     * 6、判断两个对象是否相同吗，先判断两个对象的hashCode是否相同（hashCode相同，不一定是一个对象，如果不同一定不是一个对象），
+     *    如果不同则不是一个对象，如果相同，还要进行equals判断，equals相同则相同
+     * 7、自定义对象要重写hashCode和equals，才能达到插入时不重复相同对象
+     *  (1)哈希表的存储结构：数组+链表：数组里的每个元素都以链表的形式存储
+     *  (2)如何把对象存储到哈希表中，先计算对象的hashCode值，再对数组的长度求余数，来决定对象要存储在数组中的那个位置
+     *  (3)解决hashSet中的重复值使用的方式参考第六点
+     *
+     */
+    private static void hashSet(){
+        Set<String> set = new HashSet<>();
+        set.add("飞飞");
+        set.add("关关");
+        set.add("备备");
+        set.add("亮亮");
+        set.add("曹操");
+
+        String[] names = set.toArray(new String[]{});
+        for (String name:names
+             ) {
+            System.out.println(name);
+        }
+
+    }
+
+    public static void main(String[] args) {
+        linkedHashSet();
+    }
+}
+class Student{
+    String name;
+    int age;
+
+    @Override
+    public String toString() {
+        return "Student{" +
+                "name='" + name + '\'' +
+                ", age=" + age +
+                '}';
+    }
+
+    public Student(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Student student = (Student) o;
+        return age == student.age && Objects.equals(name, student.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, age);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+}
+
+
+import java.util.Comparator;
+
+class StudentComparator implements Comparator<Student> {
+    @Override
+    public int compare(Student o1, Student o2) {
+        return o1.age-o2.age;
+    }
+}
+
+~~~
+
