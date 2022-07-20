@@ -1516,3 +1516,244 @@ class StudentComparator implements Comparator<Student> {
 
 ~~~
 
+## 集合迭代器与四大接口
+
+~~~~java
+/**
+ * Iterator接口
+ * 集合的迭代
+ */
+public class IteratorDemo {
+
+
+    /**
+     * Predicate<T>接口  断言接口
+     */
+    private static void predicateTest(){
+        List<String> list = Arrays.asList("fafa","fasfshe","hrhwqqy","kyuit");
+        List<String> list1 =  filter(list,(s)->s.contains("fa"));
+        list1.forEach(System.out::println);
+    }
+    private static List<String> filter(List<String> list, Predicate<String> p) {
+        List<String> r = new ArrayList<>();
+        for (String s : list) {
+            if (p.test(s))
+                r.add(s);
+        }
+        return r;
+    }
+
+
+    /**
+     * Supplier<T>接口    代表结果供应商
+     *
+     */
+    private static void supplierTest(){
+        List<Integer> list = getNums(10,()->(int)(Math.random()*10));
+        list.forEach(System.out::println);
+    }
+    private static List<Integer> getNums(int num, Supplier<Integer> sup){
+        List<Integer> list = new ArrayList<>();
+        for (int i = 0; i < num; i++) {
+            list.add(sup.get());
+        }
+        return list;
+    }
+
+    /**
+     * Function<T,R> 表示接受一个参数并产生结果的函数
+     */
+    private static void functionText(){
+        String s = strToUp("abc",(str)->str.toUpperCase());
+        System.out.println(s);
+    }
+    private static String strToUp(String str, Function<String, String> f){
+        return f.apply(str);
+    }
+
+    /**
+     * JDK1.8新的迭代方法
+     * Consumer<T></>消费者接口
+     */
+    private static void foreach(){
+        List<String> list = new ArrayList<>();
+        list.add("dad");
+        list.add("frwgd");
+        list.add("egad");
+        list.add("dergd");
+        list.add("eyd");
+
+        list.forEach(s->System.out.println(s));
+        list.forEach(System.out::println);
+    }
+
+    //Enumeration枚举
+    private static void enumeration(){
+        Vector<String> vs = new Vector<>();
+        vs.add("dad");
+        vs.add("frwgd");
+        vs.add("egad");
+        vs.add("dergd");
+        vs.add("eyd");
+
+        Enumeration<String> es = vs.elements();
+        while (es.hasMoreElements()){
+            System.out.println(es.nextElement());
+        }
+    }
+
+    //foreach(1.5后)
+    private static void iterator1(Collection<Student> stu){
+        for (Student s:stu) {
+            System.out.println(s);
+        }
+    }
+
+    //Iterator(1.5前)
+    private static void iterator2(Collection<Student> stu){
+        Iterator<Student> iter = stu.iterator();
+        while(iter.hasNext()){
+            System.out.println(iter.next());
+        }
+    }
+
+    public static void main(String[] args) {
+        Student s1 = new Student("李帆",24);
+        Student s2 = new Student("李饭",23);
+        Student s3 = new Student("李凡",22);
+        Student s4 = new Student("李",24);
+        List<Student> list = new ArrayList<>();
+        list.add(s1);
+        list.add(s2);
+        list.add(s3);
+        list.add(s4);
+        //iterator1(list);
+        //iterator2(list);
+        //enumeration();
+        //foreach();
+        //functionText();
+        //supplierTest();
+        predicateTest();
+    }
+}
+~~~~
+
+## Stream 接口
+
+~~~java
+/**
+ * Stream接口：不是存储数据结构，数据源可以是一个集合，为了函数式编程创造
+ * 惰式执行，数据只能被消费一次
+ *
+ * 两种类型的操作方法：
+ * 中间操作：生成一个Stream
+ *
+ * 结束操作：执行计算操作
+ */
+public class StreamDemo {
+
+
+
+    public static void main(String[] args) {
+
+        Stream<String> s = Stream.of("sfhah","jklfajsp","pweti","qofh","qofh");
+        //foreach方法:结束操作
+        //s.forEach( str-> System.out.println(str));
+        //s.forEach(System.out::println);
+
+        //filter方法:中间操作,过滤操作，Predicate接口
+        //s.filter(str->str.length()>6).forEach(System.out::println);
+
+        //distinct:中间操作，去重
+        //s.distinct().forEach(System.out::println);
+
+        //map:中间操作,Function接口
+        //s.map(str->str.toUpperCase()).forEach(System.out::println);
+
+        //flatmap:中间操作，将两个流合一
+        //Stream<List<Integer>> ss1 = Stream.of(Arrays.asList(1,2,3),Arrays.asList(7,78));
+        //ss1.forEach(System.out::println);
+        //Stream<List<Integer>> ss2 = Stream.of(Arrays.asList(1,2,3),Arrays.asList(7,78));
+        //ss2.flatMap(list->list.stream()).forEach(System.out::print);
+
+        //reduce:中间操作    return c = reduce(A,B)
+        //Optional<String> o = s.reduce((s1, s2)->s1.length()>=s2.length()?s1:s2);
+        //System.out.println(o.get());
+
+        //collect:中间操作
+        List<String> list = s.collect(Collectors.toList());
+        list.forEach(System.out::println);
+
+        //::   方法的引用
+        //引用静态方法  Integer::vakuOf
+        //引用对象方法  List::add
+        //引用构造方法  ArrayList::new
+    }
+}
+
+~~~
+
+
+
+## map
+
+~~~java
+**
+ * Map接口
+ * 1、键值对存储一组对象
+ * 2、key不能重复，value可以重复
+ * 3、具体的实现类：HashMap、TreeMap、Hashtable、LinkedHashMap
+ */
+public class MapDemo {
+
+    /**
+     * HashMap的实现原理
+     * 1、基于哈希表（数组+链表+二叉树（红黑树））
+     * 2、默认加载因子为0.75，空间达到总量的0.75就扩容到原来的2倍，初始空间大小为16
+     * 3、把对象存储到哈希表中，如何存储？
+     *    把key对象通过hash（）算法算hash值，然后用hash值对数组长度（默认为16）取余来决定
+     *    该对象应该放在数组中的哪个位置，当这个位置有多个对象时，以链表结构存储，在JDK1.8后，
+     *    当链表长度大于8时，链表转换为红黑树结构存储
+     *    这样的母的是为了遍历更快，存储的数据量越大，性能的优越性更明显
+     */
+    private static void hashMap(){
+        Map<Integer,String> map = new HashMap<>();
+        map.put(1,"fa");
+        map.put(2,"fpb");
+        map.put(3,"foa");
+        map.put(14,"fkl");
+        System.out.println(map.size());
+        //map中取值
+        //System.out.println(map.get(2));//通过key去value
+
+        //map的遍历 1
+        Set<Map.Entry<Integer,String>> entrySet = map.entrySet();
+        for (Map.Entry e:entrySet ) {
+            System.out.println(e.getKey()+" "+e.getValue());
+        }
+
+        //map的遍历 2
+        Set<Integer> keys = map.keySet();
+        for (Integer k:keys) {
+            System.out.println(k+" "+map.get(k));
+        }
+
+        //map的遍历 3  遍历值
+        Collection<String> values = map.values();
+        for (String value:values) {
+            System.out.println(value);
+        }
+
+        //foreach 4
+        map.forEach((key,value)->System.out.println(key+" "+value));
+    }
+
+    public static void main(String[] args) {
+        hashMap();
+    }
+}
+
+~~~
+
+
+
