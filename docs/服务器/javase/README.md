@@ -1698,13 +1698,56 @@ public class StreamDemo {
 ## map
 
 ~~~java
-**
+/**
  * Map接口
  * 1、键值对存储一组对象
  * 2、key不能重复，value可以重复
  * 3、具体的实现类：HashMap、TreeMap、Hashtable、LinkedHashMap
+ * 4、HashMap与Hashtable的区别
+ * 5、数据结构：数组、链表、二叉树（红黑树）、哈希表（数组+链表）、栈，队列
+ *
  */
 public class MapDemo {
+
+    /**
+     * 基于二叉树的红黑树实现
+     * 注入自定义的类时需要实现比较器才能加入
+     * 与treeSet相比多了一个value值（实际上treeSet只是屏蔽了value值）
+     */
+    private static void treeMap(){
+        Map<String,String> map = new TreeMap<>();
+        map.put("2","dsa");
+        map.put("1","asf");
+        map.put("3","gs");
+        map.forEach((key,value)->System.out.println(key+"->"+value));
+    }
+
+    /**
+     * LinkedHashMap是HashMap的子类
+     * 由于HashMap不能保证顺序恒久不变，此类使用一个双重链表来维护对象
+     * 添加的顺序
+     */
+    private static void linkedHashMap(){
+        Map<String,String> table = new LinkedHashMap<>();
+        table.put("1","dsa");
+        table.put("2","asf");
+        table.put("3","gs");
+        table.forEach((key,value)->System.out.println(key+"->"+value));
+    }
+
+    /**
+     * 基于哈希表实现（数组加链表）默认数组大小为11，加载因子为0.75
+     * 扩充方式：原数组大小乘以2再加1
+     * 线程安全的，用在多线程访问时
+     */
+    private static void hashtable(){
+        Map<String,String> table = new Hashtable<>();
+        table.put("1","dsa");
+        table.put("2","asf");
+        table.put("3","gs");
+
+        table.forEach((key,value)->System.out.println(key+"->"+value));
+    }
 
     /**
      * HashMap的实现原理
@@ -1715,6 +1758,10 @@ public class MapDemo {
      *    该对象应该放在数组中的哪个位置，当这个位置有多个对象时，以链表结构存储，在JDK1.8后，
      *    当链表长度大于8时，链表转换为红黑树结构存储
      *    这样的母的是为了遍历更快，存储的数据量越大，性能的优越性更明显
+     * 4、扩充原理：当数组的容量超过了75%，数组容量扩充到2倍，扩充次数过多会影响性能，
+     *    每次扩充表示hash表重新散列（重新计算每个对象的存储位置），在开发中尽量减少扩充次数带来
+     *    的性能问题。
+     * 5、线程不安全的，适合在单线程上使用
      */
     private static void hashMap(){
         Map<Integer,String> map = new HashMap<>();
@@ -1749,7 +1796,126 @@ public class MapDemo {
     }
 
     public static void main(String[] args) {
-        hashMap();
+        treeMap();
+    }
+}
+
+
+
+/**
+ * Map接口1.8新方法介绍
+ */
+public class MapNewMethodDemo {
+
+    public static void main(String[] args) {
+
+        Map<String, String> map = new HashMap<>();
+        map.put("2","dsa");
+        map.put("1","asf");
+        map.put("3","gs");
+
+        //当取得key不存在，返回默认值defaultValue
+        //System.out.println(map.getOrDefault("1","null"));
+        //System.out.println(map.getOrDefault("5","null"));
+
+        //如果此key存在，不再覆盖原来的value，put会覆盖原来的value
+        // map.putIfAbsent("3","fat");
+        // map.forEach((key,value)-> System.out.println(key+"->"+value));
+
+        //如果输入的value值与原来的值不相等，则无法删除
+        //map.remove("1","dag");
+
+
+        //和原来的value比较，如果一致则替换新的value，否则无法替换
+        //map.replace("3","s","fkj");
+
+        //自定义一个方法改变value值
+        //map.compute("1",(key , value)->value+"1");
+        //key为空则加上这对键值对，否则无变化
+        //map.computeIfAbsent("6",(s)->"faf");
+
+        //如果存在这个key，则连接字符串，没有这个key则新增一个键值对
+        map.merge("2","129",(oldV,newV)->oldV+newV);
+        map.forEach((key,value)-> System.out.println(key+"->"+value));
+    }
+}
+
+
+~~~
+
+## Collections工具类
+
+~~~java
+
+public class CollectionsDemo {
+
+    public static void main(String[] args) {
+        List<String> list = new ArrayList<>();
+        list.add("lak");
+        list.add("fha");
+        list.add("alh");
+        list.add("psa");
+        list.add("psa");
+
+        //顺序反转
+        //Collections.reverse(list);
+
+
+        //随机排序(打乱顺序)
+        //Collections.shuffle(list);
+
+        //从小到大排序，只能对一些实现了Comparator接口的类有作用
+        //自定义类型需要自己实现Comparator接口或者方法才能进行排序
+        //Collections.sort(list);
+
+        //交换位置(位置1和位置2 交换位置)
+        //Collections.swap(list,1,2);
+
+        //向右转distance个单位
+        //Collections.rotate(list,1);
+
+        //得到这个值的索引值
+        //使用这个方法的前提必须先排序！！
+        //如果没有这个值则返回这个值本应该在的索引值的后一位再取反：-(low + 1);  // key not found
+        //下面这个列表的10本应该存储在9的后面，即索引为4的位置，所以得到的 a = -(4+1) = -5
+        //List<Integer> list1 = new ArrayList<>();
+        //list1.add(2);//1
+        // list1.add(6);//2
+        //list1.add(1);//0
+        //list1.add(9);//3
+        //Collections.sort(list1);
+        //int a = Collections.binarySearch(list1,10);
+        // System.out.println(a);
+
+        //max和 min 不再举例子，自定义类可放入比较器
+
+        //将对象都填充为指定内容
+        //Collections.fill(list,"bin");
+
+        //求这个对象出现的次数
+        //int b = Collections.frequency(list,"psa");
+        //System.out.println(b);
+
+        //所有的老值全部替换为新值
+        //Collections.replaceAll(list,"psa","fa");
+
+        //同步控制：HashSet、ArrayList、HashMap都是线程不安全的，如果考虑同步，
+        //则使用这些方法。注意！！！！在使用迭代方法遍历集合时需要手工同步返回的集合
+        //List<String> syncList = Collections.synchronizedList(new ArrayList<String>());
+
+        //emptyxxx:返回一个空的不可变的集合对象
+        //singletonxxx:返回一个只包含指定对象的，不可变的集合对象
+        //unmodifiablexxx:返回知道集合对象的不可变视图
+        //List<String> s = Collections.emptyList();
+        //s.add("bin");
+
+        //disjoint(),参数为两个集合，如果两个集合中没有相同的元素返回true
+        //addAll：将所有指定元素添加到指定集合中
+        //reverseOrder(Comparator)：强行反转比较器，如果比较器为空，则相当于reverseOrder()
+
+
+
+        System.out.println(list);
     }
 }
 
