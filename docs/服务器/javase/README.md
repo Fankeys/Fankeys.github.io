@@ -463,6 +463,8 @@ public class WWW_Demo7 {
 
 ## 对象流与序列化
 
+![21](../javase-image/21.png)
+
 ~~~java
 /**
  * 对象流与序列化
@@ -1920,6 +1922,404 @@ public class CollectionsDemo {
 }
 
 ~~~
+
+## Optional类
+
+~~~java
+public class OptionalDemo {
+    public static void main(String[] args) {
+        Optional<String> optional = Optional.of("bin");
+        Optional<String> optional1 = Optional.empty();
+        //如果value为空，返回empty(),不为空，返回of(value);
+        Optional<String> optional2 = Optional.ofNullable("bin");
+        //取出值
+        //System.out.println(optional.get());
+        //如果为空返回false，不为空反之
+        //System.out.println(optional.isPresent());
+        //如果实例有值则调用consumer方法，否则不做处理
+        //optional.ifPresent((value)-> System.out.println(value));
+        //如果有值则将其返回，否则返回默认值
+        //optional.orElse("无值");
+        //可以接受Supplier接口的实现生成默认值
+        //System.out.println(optional1.orElseGet(()->"default"));
+        //有值将其返回，无值抛出Supplier接口创建的异常
+//        try{
+//        optional1.orElseThrow(Exception::new);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+        //有值调用mapping函数得到返回值，如果返回值不为null，则创建包含
+        //mapping返回值的optional作为方法返回值，否则返回空optional
+        //括号里写Function
+        //Optional<String> optional3=optional.map((value)->value.toUpperCase());
+        //System.out.println(optional3.get());
+        //与map（）类似区别在于flatMap中的mapping返回值必须是Optional，调用结束后不会对结果用Optional封装
+        //Optional<String> optional4 = optional.flatMap((value)->Optional.of(value.toUpperCase()+"234"));
+        //System.out.println(optional4.get());
+        //如果有值并满足该断言条件返回包含该值的Optional，否则返回空Optional
+        //Optional<String> optional5 = optional.filter((value)->value.length()>3);
+        //System.out.println(optional5.orElse("这个值的长度不大于3"));
+    }
+}
+
+~~~
+
+## 队列和栈
+
+~~~java
+/**
+ * Queue接口表示的是队列：是一种先进先出的线性数据结构
+ * LinkedList类实现的Queue接口
+ * 请求队列，消息队列，任务队列
+ * Deque:一个线性Collection，支持在两段插入和移除元素
+ * Stack 堆栈：先进后出
+ */
+public class QueueDequeDemo {
+
+    private  static void stack(){
+        Stack<String> s = new Stack();
+        s.push("小红");
+        s.push("小白");
+        s.push("小黑");
+        s.push("小绿");
+        s.push("小蓝");
+
+        //移除头
+        System.out.println(s.pop());
+        //查看头
+        System.out.println(s.peek());
+    }
+
+    private static void deque(){
+        Deque<String> deque = new LinkedList();
+        deque.add("小红");
+        deque.add("小白");
+        deque.add("小黑");
+        deque.add("小绿");
+        deque.add("小蓝");
+
+        //取头和取尾
+        System.out.println(deque.getFirst());
+        System.out.println(deque.getLast());
+    }
+
+    private static void queue(){
+        Queue<String> queue = new LinkedList();
+        queue.add("小红");
+        queue.add("小白");
+        queue.add("小黑");
+        queue.add("小绿");
+        queue.add("小蓝");
+        //检索但不删除这个队列的头
+        System.out.println(queue.element());
+        //检索但不删除这个队列的头,如果为空返回null
+        queue.peek();
+        //在不违反容量限制的情况下执行，将指定元素插入到队列中
+        queue.offer("蔡徐坤");
+        //检索并删除此队列的头，如果队列为空，则返回null
+        queue.poll();
+        //检索并删除此队列的头
+        queue.remove();
+        System.out.println(queue.size());
+
+    }
+
+    public static void main(String[] args) {
+        stack();
+    }
+}
+
+~~~
+
+## 对象的一对一与一对多
+
+~~~java
+public class OneToMore {
+    public static void main(String[] args) {
+        Teacher teacher = new Teacher("张老师",28);
+        Student s1 = new Student("小李",12);
+        Student s2 = new Student("小王",13);
+        Student s3 = new Student("小黄",11);
+        Student s4 = new Student("小戴",16);
+
+        //关联关系
+        teacher.getStudents().add(s1);
+        teacher.getStudents().add(s2);
+        teacher.getStudents().add(s3);
+        teacher.getStudents().add(s4);
+        s1.setTeacher(teacher);
+        s2.setTeacher(teacher);
+        s3.setTeacher(teacher);
+        s4.setTeacher(teacher);
+
+        printT(teacher);
+    }
+
+    private static void printT(Teacher teacher) {
+        System.out.println(teacher.toString());
+    }
+}
+
+public class Student {
+    private String name;
+    private int age;
+    private Teacher teacher;
+
+    public Teacher getTeacher() {
+        return teacher;
+    }
+
+    public void setTeacher(Teacher teacher) {
+        this.teacher = teacher;
+    }
+
+    @Override
+    public String toString() {
+        return "Student{" +
+                "name='" + name + '\'' +
+                ", age=" + age +
+                '}';
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+    public Student(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+}
+
+import java.util.HashSet;
+
+public class Teacher {
+    private String name;
+    private int age;
+    private HashSet<Student> students = new HashSet<>();
+
+    public HashSet<Student> getStudents() {
+        return students;
+    }
+
+    public void setStudents(HashSet<Student> students) {
+        this.students = students;
+    }
+
+    @Override
+    public String toString() {
+        return "Teacher{" +
+                "name='" + name + '\'' +
+                ", age=" + age +
+                students.toString()+
+                '}';
+    }
+
+    public Teacher(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+}
+~~~
+
+## Guava开源组件
+
+~~~java
+public class GuavaDemo {
+
+    /**
+     * 双键Map:Table   rowKey+columnKye+value
+     */
+    @Test
+    public void testGuava9(){
+        Table<String,String,String> table= HashBasedTable.create();
+        table.put("jack","fuck","2");
+        table.put("jia","fuck","2");
+        table.put("jia","fuck","2");
+        table.put("juu","fuck","2");
+        Set<Table.Cell<String, String, String>> cells = table.cellSet();
+        //只有两个Key都一样才会覆盖
+        cells.forEach(System.out::println);
+    }
+
+    /**
+     * Bimap : key和value都不能重复
+     */
+    @Test
+    public void testGuava8(){
+        BiMap<String,String> biMap = HashBiMap.create();
+        biMap.put("first","18688888888");
+        biMap.put("second","18488888888");
+        biMap.put("third","18588888888");
+        //key和value反转
+        System.out.println(biMap.inverse().get("18688888888"));
+    }
+
+
+    /**
+     * Multimap : key可以重复
+     * 一个key对应多个值
+     */
+    @Test
+    public void testGuava7(){
+        Map<String,String> map = new HashMap<>();
+        map.put("Java从入门到精通","li");
+        map.put("PHP从入门到精通","li");
+        map.put("Python从入门到精通","fan");
+        map.put("人类","vac");
+
+        Iterator<Map.Entry<String,String>> iterator = map.entrySet().iterator();
+        Multimap<String,String> mMap = ArrayListMultimap.create();
+        while(iterator.hasNext()){
+            Map.Entry<String,String> entry = iterator.next();
+            mMap.put(entry.getValue(), entry.getKey());
+        }
+        Set<String> keySet = mMap.keySet();
+        for (String key:keySet){
+            Collection<String> values = mMap.get(key);
+            System.out.println(key+"->"+values);
+        }
+
+    }
+
+    /**
+     * Multiset:无序可重复
+     */
+    @Test
+    public void testGuava6(){
+        String s = "good good study day day up";
+        String[] ss = s.split(" ");
+        //创建HashMultiset
+        HashMultiset<String> set = HashMultiset.create();
+        for (String str:ss) {
+            set.add(str);
+        }
+        Set<String> strings = set.elementSet();
+        set.forEach(System.out::println);
+        System.out.println("===========");
+
+        for (String str:strings) {
+            System.out.println(str+":"+set.count(str));
+        }
+    }
+
+    /**
+     * 集合操作：交集、并集、差集
+     */
+    @Test
+    public void testGuava5(){
+        Set<Integer> s1 = Sets.newHashSet(1,2,3);
+        Set<Integer> s2 = Sets.newHashSet(2,3,4);
+        //交集,返回的是一个视图
+        Sets.SetView<Integer> v1 = Sets.intersection(s1, s2);
+        v1.forEach(System.out::println);
+        System.out.println("===========");
+        //差集，以s1为主的
+        Sets.SetView<Integer> v2 = Sets.difference(s1, s2);
+        v2.forEach(System.out::println);
+        System.out.println("===========");
+        //差集，以s2为主的
+        Sets.SetView<Integer> v3 = Sets.difference(s2, s1);
+        v3.forEach(System.out::println);
+        System.out.println("===========");
+        //并集
+        Sets.SetView<Integer> v4 = Sets.union(s1, s2);
+        v4.forEach(System.out::println);
+    }
+
+    /**
+     * 组合式函数
+     */
+    @Test
+    public void testGuava4(){
+        List<String> list = Lists.newArrayList("java", "c", "python", "js");
+        //两个Function组合来实现过滤
+        Function<String,String> f1 = new Function<String, String>() {
+            @Override
+            public String apply(String s) {
+                return s.length()>3?s.substring(0,3):s;
+            }
+        };
+        Function<String,String> f2 = new Function<String, String>() {
+            @Override
+            public String apply(String s) {
+                return s.toUpperCase();
+            }
+        };
+
+        Function<String,String> f = Functions.compose(f1,f2);
+        Collection<String> transform = Collections2.transform(list, f);
+        transform.forEach(System.out::println);
+    }
+
+    /**
+     * 转换
+     */
+    @Test
+    public void testGuava3(){
+        Set<Long> time = Sets.newHashSet(19981205L,20050501L,20191225L);
+        //第二个参数是Function
+        Collection<String> transform = Collections2.transform(time, (value) -> new String(value.toString()));
+        transform.forEach(System.out::println);
+    }
+
+    /**
+     * 过滤器
+     */
+    @Test
+    public void testGuava2() {
+        //Lists是Guava中的工具类
+        List<String> list = Lists.newArrayList("java", "c", "python", "js");
+        //过滤j开头的数据,Collections2工具类
+        Collection<String> j = Collections2.filter(list, (value) -> value.startsWith("j"));
+        j.forEach(System.out::println);
+
+    }
+
+    /**
+     * 设置只读
+     */
+    @Test
+    public void testGuava1() {
+        System.out.println("test");
+        //ImmutableList是一个不可变、线程安全的列表集合，它只会获取传入对象的一个副本。
+        ImmutableList<String> of = ImmutableList.of("jack", "Tom", "john");
+    }
+}
+
+~~~
+
+# 多线程和并发
+
+## 进程与线程
 
 
 
