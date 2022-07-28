@@ -1651,6 +1651,16 @@ public class IteratorDemo {
  * 中间操作：生成一个Stream
  *
  * 结束操作：执行计算操作
+ *
+ *
+ * Function:一个入参 一个返回
+ *
+ * Consumer：一个入参
+ *
+ * Supplier: 一个返回
+ *
+ * Predicate： 一个入参，返回boolean值
+ *
  */
 public class StreamDemo {
 
@@ -1693,9 +1703,281 @@ public class StreamDemo {
     }
 }
 
+
+
+
 ~~~
 
+### Stream的基本操作
 
+#### map
+
+转换`Stream`中的数据
+
+```java
+public class MapDemo {
+    public static void main(String[] args) {
+        List<Movie> movies = List.of(
+                new Movie("a", 10),
+                new Movie("b", 15),
+                new Movie("c", 20)
+        );
+        movies.stream()
+                .map(Movie::getTitle)
+                .forEach(System.out::println);
+    }
+}
+```
+
+扁平化映射：
+
+```java
+public class MapDemo {
+    public static void main(String[] args) {
+        var stream = Stream.of(List.of(1, 2, 3), List.of(4, 5, 6));
+        stream.flatMap(list -> list.stream())
+                .forEach(System.out::println);
+    }
+}
+```
+
+#### filter
+
+旨在用来过滤合乎条件的数据，顾名思义
+
+```java
+public class FilterDemo {
+    public static void main(String[] args) {
+        List<Movie> movies = List.of(
+                new Movie("a", 10),
+                new Movie("b", 15),
+                new Movie("c", 20)
+        );
+        movies.stream()
+                .filter(movie -> movie.getLikes() > 10)
+                .forEach(movie -> System.out.println(movie.getTitle()));
+    }
+}
+```
+
+####  slice
+
+```java
+public class SliceDemo {
+    public static void main(String[] args) {
+        List<Movie> movies = List.of(
+                new Movie("a", 10),
+                new Movie("b", 15),
+                new Movie("c", 20)
+        );
+        movies.stream()
+//                .limit(2)
+                .skip(2)
+                .forEach(movie -> System.out.println(movie.getTitle()));
+    }
+}
+```
+
+> limit和skip组合使用，可以用来制作分页数据
+
+```java
+int pageNum = 3;
+int pageSize = 10;
+movies.stream()
+  .skip((pageNum - 1) * pageSize)
+  .limit(pageSize)
+  .forEach(movie -> System.out.println(movie.getTitle()))
+```
+
+2个与`filter`非常类似的`API`
+
+```java
+public static void main(String[] args) {
+  List<Movie> movies = List.of(
+    new Movie("a", 10),
+    new Movie("b", 15),
+    new Movie("c", 20)
+  );
+  movies.stream()
+    //.takeWhile(movie -> movie.getLikes() < 15)
+    .dropWhile(movie -> movie.getLikes() < 15)
+    .forEach(movie -> System.out.println(movie.getTitle()));
+}
+```
+
+#### sort
+
+```java
+public static void main(String[] args) {
+  List<Movie> movies = List.of(
+    new Movie("b", 10),
+    new Movie("a", 15),
+    new Movie("c", 20)
+  );
+  movies.stream()
+    //                .sorted((a,b)->a.getTitle().compareTo(b.getTitle()))
+    .sorted(Comparator.comparing(Movie::getTitle).reversed())
+    .forEach(movie -> System.out.println(movie.getTitle()));
+}
+```
+
+#### 其它
+
+去重复
+
+```java
+public static void main(String[] args) {
+  List<Movie> movies = List.of(
+    new Movie("a", 10),
+    new Movie("b", 15),
+    new Movie("c", 20)
+  );
+  movies.stream()
+    .map(Movie::getLikes)
+    .distinct()
+    .forEach(System.out::println);
+}
+```
+
+调试
+
+```java
+public static void main(String[] args) {
+  List<Movie> movies = List.of(
+    new Movie("a", 10),
+    new Movie("b", 15),
+    new Movie("c", 20)
+  );
+  movies.stream()
+    .filter(movie -> movie.getLikes() < 20)
+    .peek(movie -> System.out.println("filter:" + movie.getTitle()))
+    .map(Movie::getTitle)
+    .peek(title -> System.out.println("map:" + title))
+    .forEach(System.out::println);
+}
+```
+
+###  从Stream获取答案
+
+- count：获取流中数据的个数
+- anyMatch / allMatch / noneMatch：至少有一个匹配 / 全部匹配 / 没有一个匹配 条件
+- findFirst / findAny：找到第一个 / 找到任何一个
+- max / min：找到最大者 / 最小者
+
+使用`reduce()`统计：
+
+```java
+public static void main(String[] args) {
+  List<Movie> movies = List.of(
+    new Movie("a", 10),
+    new Movie("b", 15),
+    new Movie("c", 20)
+  );
+  var sum = movies.stream()
+    .map(Movie::getLikes)
+    .reduce((a, b) -> a + b);
+  System.out.println(sum.orElse(0));
+}
+```
+
+使用`collect()`收集数据
+
+```java
+public static void main(String[] args) {
+  List<Movie> movies = List.of(
+    new Movie("a", 10),
+    new Movie("b", 15),
+    new Movie("c", 20)
+  );
+  var result = movies.stream()
+    .filter(movie -> movie.getLikes() < 20)
+    //                .collect(Collectors.toList());
+    .collect(Collectors.summarizingInt(Movie::getLikes));
+  System.out.println(result);
+}
+
+public static void main(String[] args) {
+  List<Movie> movies = List.of(
+    new Movie("a", 10),
+    new Movie("b", 15),
+    new Movie("c", 20)
+  );
+  var result = movies.stream()
+    .map(Movie::getTitle)
+    .collect(Collectors.joining(","));
+  System.out.println(result);
+}
+```
+
+分组
+
+```java
+public enum Genre {
+    Action,
+    War
+}
+
+public class Movie {
+    private String title;
+    private int likes;
+    private Genre genre;
+
+    public Movie(String title, int likes, Genre genre) {
+        this.title = title;
+        this.likes = likes;
+        this.genre = genre;
+    }
+
+    public Genre getGenre() {
+        return genre;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+
+    public int getLikes() {
+        return likes;
+    }
+}
+
+
+```
+
+```java
+public static void main(String[] args) {
+  List<Movie> movies = List.of(
+    new Movie("a", 10, Genre.Action),
+    new Movie("b", 15, Genre.Action),
+    new Movie("c", 20, Genre.War)
+  );
+  var result = movies.stream()
+    .collect(Collectors.groupingBy(Movie::getGenre));
+}
+```
+
+分区操作
+
+```java
+public static void main(String[] args) {
+  List<Movie> movies = List.of(
+    new Movie("a", 10, Genre.Action),
+    new Movie("b", 15, Genre.Action),
+    new Movie("c", 20, Genre.War)
+  );
+  var result = movies.stream()
+    .collect(Collectors.partitioningBy(movie -> movie.getLikes() > 15));
+  System.out.println(result);
+}
+```
+
+###  基本类型的Stream操作
+
+```java
+IntStream.rangeClosed(1, 5)
+                .forEach(System.out::println);
+```
 
 ## map
 
@@ -2321,5 +2603,1742 @@ public class GuavaDemo {
 
 ## 进程与线程
 
+~~~java
+一、进程 
+进程是操作系统中一种非常重要的软件资源，当我们把一个可执行程序exe运行起来的时候，系统就会随之创建一个进程，如果这个程序结束系统会随之销毁对应的进程。
 
+当运行exe文件时，exe文件中的很多内容都加载到内存中，通过分配资源来执行这个程序包含的指令的过程叫做进程。
+
+进程的管理是通过先描述在组织的方法：
+
+在Linux中每创建一个进程就会创建一个PCB这样的类的实例
+
+创建一个进程，本质上就是在内核中先创建一个PCB对象，然后将这个对象加入到链表中。
+
+结束一个进程的时候，本质上就是在内核中找到这个PCB对象，将他从链表中删除，并且释放该对象。
+
+我们通过任务管理器中看到的所以的进程信息就是在内核中遍历该链表，依次读取PCB中的信息。
+ PCB中包含的信息：
+
+1、进程id----进程的身份标识。
+
+2、一组内存指针----指向该进程持有的一些重要数据在内存中的位置。 
+
+以及状态、优先级、进程的记账信息、上下文，这些模块交做调度器来实现进程模块的调度，
+
+为了让这么多进程可以在有限的CPU上并发执行。
+
+状态：判断是在运行还是在休眠等······
+
+优先级：判断这个进程是优先在CPU上执行还是放到后面······
+
+进程的记账信息：记录进程在CPU上执行的时间，通过时间来限制一段进程的执行······
+
+上下文：保存进程在CPU上执行的进度，方便下次继续执行······
+
+二、线程
+所谓的线程其实是一种轻量级的进程
+
+1、一个进程中包含多个线程
+
+2、相比于进程成本更低，大部分资源是和原来的线程共享的，主要共享内存资源和打开的文件，上下文等是不能共享的。
+
+3、每个线程都有一段自己的执行逻辑，每个线程都是一个独立的执行流。
+
+注意：当创建出一个进程时，会随之创建一个主线程。
+
+线程中的管理模式和进程中的一样都是先描述在组织。
+
+一个线程和一个PCB对应，一个进程可能和多个PCB对应，在PCB中会有线程组id来对应一组线程。
+
+进程中最多可以有多少个线程取决于：
+
+1、CPU的个数。
+
+2、和线程执行的任务类型也相关（CPU密集性和IO密集性）。
+
+三、进程和线程的区别
+根本区别：进程是操作系统分配资源的最小单位，线程是任务调动和执行的最小单位。
+
+在开销方面：每个进程都有独立的代码和数据空间，程序切换会有较大的开销。线程之间共享代码和数据，每个线程都有自己独立的栈和调度器，线程之间的切换的开销较小。
+
+所处环境：一个操作系统中可以运行多个进程，一个进程中有多个线程同时执行。
+
+内存分配方面：系统在运行时会为每个进程分配内存，系统不会单独为每个线程分配内存。
+
+包含关系：创建进程时系统会自动创建一个主线程由主线程完成，进程中有多线程时，由多线程共同执行完成。
+// 1、Process 进程：就是一个应用程序在运行期间，它所申请的资源（硬件、软件）的总和，它即是内存中划定的一块区域，而且是当前应用程序所“独占”的
+    // 当一个应用程序功能足够复杂的时候，它可能会由多个进程组成，每一个进程都会承担或者提供相应的某一项功能
+
+    // 2、Thread 线程：“是一个轻量级的进程”，一个进程是由多个线程组成的，同时，线程又是CPU的最基本的调度单位
+
+    // 一些相关的概念
+    // CPU相关：
+    // 某一个线程如果想要计算，必须首先要争抢到CPU的时间片（是一个非常小的，几乎不可以再切割的时间单位），才有机会让CPU来计算程序中指定的逻辑
+    // 我们的操作系统可以同时运行多个应用程序，这些程序是由多个进程组成的，同时每一个进程又包含了多个线程，因此，有一个权力非常大的对象“调度器”，
+    // 由调度器来决定什么时间，哪个线程来执行CPU的运算
+~~~
+
+## 线程的两种实现方式
+
+~~~java
+/**
+ * 线程的两种创建方式和线程的休眠
+ */
+public class ThreadDemo {
+    public static void main(String[] args) {
+        MyThread mt = new MyThread();
+
+        MyThread1 mt1 = new MyThread1();
+        Thread t = new Thread(mt1);
+
+        mt.start();
+        t.start();
+    }
+}
+//第一种方法,继承Thread类
+class MyThread extends Thread{
+    @SneakyThrows
+    @Override
+    public void run() {
+        for (int i = 0; i < 50; i++) {
+            //Thread.currentThread()返回当前线程对象的引用
+            System.out.println(Thread.currentThread().getName()+"--"+i);
+            Thread.sleep(500);//在当前线程中暂停指定的毫秒数，释放CPU时间片
+        }
+    }
+}
+//第二种方法,实现Runnable接口
+class MyThread1 implements Runnable{
+
+    @SneakyThrows
+    @Override
+    public void run() {
+        for (int i = 0; i < 50; i++) {
+            System.out.println(Thread.currentThread().getName()+"--"+i);
+            Thread.sleep(500);
+        }
+    }
+}
+~~~
+
+## join与中断
+
+~~~java
+/**
+ * join方法：
+ * 加入线程，让被调用的线程先执行指定时间或执行完毕
+ * 中断线程：
+ * （1）使用interrupt方法来中断线程，设置一个中断状态（标记）
+ * (2)使用自定义标记
+ */
+public class ThreadDemo1 {
+    public static void main(String[] args) throws InterruptedException {
+        MyRunable myRunable = new MyRunable();
+        Thread t = new Thread(myRunable);
+        t.start();
+
+        // MyRunable1 myRunable1 = new MyRunable1(true);
+        // Thread t1 = new Thread(myRunable1);
+        // t1.start();
+
+        for (int i = 0; i < 50; i++) {
+            System.out.println(Thread.currentThread().getName() + "---" + i);
+            Thread.sleep(300);
+            if (i == 20) {
+                t.join();//让t线程执行完毕，再执行主线程
+                t.interrupt();//在t的外部中断线程，会抛出休眠异常中断
+                //myRunable1.flag=false;
+            }
+
+
+        }
+    }
+}
+
+class MyRunable implements Runnable {
+
+    @SneakyThrows
+    @Override
+    public void run() {
+        for (int i = 0; i < 50; i++) {
+            //测试当前线程是否被中断，此方法会把中断状态清除
+            if (Thread.interrupted()) {
+                break;
+            }
+            System.out.println(Thread.currentThread().getName() + "----" + i);
+            Thread.sleep(300);
+        }
+    }
+}
+
+class MyRunable1 implements Runnable {
+    public boolean flag = true;
+
+    public MyRunable1(boolean flag) {
+        this.flag = flag;
+    }
+
+    @SneakyThrows
+    @Override
+    public void run() {
+        int i = 0;
+
+        while (flag) {
+            Thread.sleep(300);
+            System.out.println(Thread.currentThread().getName() + "----" + i++);
+        }
+    }
+}
+~~~
+
+## 守护线程and优先级
+
+~~~java
+public class TreadDemo2 {
+    public static void main(String[] args) throws InterruptedException {
+        Thread t = new Thread(new MyRunable2());
+        //线程可分为守护线程和用户线程，当进程中没有用户线程时，JVM会退出
+        t.setDaemon(true);//把线程设置为守护线程
+
+        //t.isAlive();//测试线程是否处于活动状态
+        //t.setName("af");//设置名称
+        //t.getName();//返回该线程的名称
+        //t.getId();//返回线程的标识
+        //t.setPriority(Thread.MAX_PRIORITY);//优先级高可以提高线程抢cpu时间片的概率
+        t.start();
+        for (int i = 0; i < 50; i++) {
+            System.out.println("main"+i);
+            Thread.sleep(200);
+            if(i==5){
+                Thread.yield();//让出本次CPU执行时间片，没什么用的方法
+            }
+        }
+    }
+}
+class MyRunable2 implements Runnable{
+
+    @SneakyThrows
+    @Override
+    public void run() {
+        for (int i = 0; i < 50; i++) {
+            System.out.println(i);
+            Thread.sleep(300);
+        }
+    }
+}
+~~~
+
+## 线程同步
+
+~~~java
+/**
+ * 多线程共享数据时，会发生线程不安全的情况
+ * 多线程共享数据必须使用同步：三种方法(同步代码块、同步方法、锁)
+ * 多线程共享数据会有安全问题，必须使用同步解决，但是同时会牺牲性能，
+ * 所以同步代码块要尽量简短，不要阻塞，在持有锁的时候不要对其他对象调用方法
+ */
+public class ThreadDemo3 {
+    public static void main(String[] args) {
+        MyRunable3 myRunable3 = new MyRunable3();
+        Thread t1 = new Thread(myRunable3);
+        Thread t2 = new Thread(myRunable3);
+        t1.start();
+        t2.start();
+    }
+}
+
+class MyRunable3 implements Runnable {
+
+    private int ticket = 10;//售票
+
+    @SneakyThrows
+    @Override
+    public void run() {
+        for (int i = 0; i < 300; i++) {
+            //同步代码块
+            // synchronized (this) {//可以放任意对象做锁
+            //     if (ticket > 0) {
+            //         System.out.println("您购买了第" + ticket + "张");
+            //         Thread.sleep(1000);
+            //         ticket--;
+            //     }
+            // }
+            metod1();
+        }
+    }
+
+    //同步方法，同步的对象是当前对象
+    private synchronized void metod() throws InterruptedException {
+        if (ticket > 0) {
+            System.out.println("您购买了第" + ticket + "张");
+            Thread.sleep(1000);
+            ticket--;
+        }
+    }
+
+    ReentrantLock lock = new ReentrantLock();//互斥锁
+
+    //lock实现同步
+    private void metod1() throws InterruptedException {
+        lock.lock();//上锁
+        try {
+            if (ticket > 0) {
+                System.out.println("您购买了第" + ticket + "张");
+                Thread.sleep(1000);
+                ticket--;
+            }
+        } finally {
+            lock.unlock();//释放锁
+        }
+
+    }
+}
+
+~~~
+
+## 死锁
+
+![22](../javase-image/22.png)
+
+~~~java
+一、什么是死锁
+死锁就是指两个或两个以上的线程在执行过程中，由于竞争资源或者由于彼此通信而造成的现象，若无外力作用，他们都无法推进下去。
+二、死锁产生的原因
+1、互斥条件：一个资源只能被一个线程占有，当这个资源被占有后其他线程就只能等待
+2、不可剥夺条件：当一个线程不主动释放资源时，此资源一直被拥有线程占有
+3、请求并持有条件：线程已经拥有了一个资源后，又尝试请求新的资源
+4、环路等待条件：产生死锁一定是发生了线程资源环形链
+~~~
+
+## 生产者与消费者案例
+
+~~~java
+/**
+ * sleep:让线程进入休眠状态，染出CPU时间片，不是反对象监视器的所有权（对象锁）
+ * wait:让线程进入等待状态，让出CPU的时间片，并释放对象监视器的所有权，等待其他线程通过notify方法来唤醒
+ *
+ */
+public class ProducerCustomerDemo {
+    public static void main(String[] args) {
+        Food food = new Food();
+        Product p = new Product(food);
+        Customer c = new Customer(food);
+        Thread t1 = new Thread(p);
+        Thread t2 = new Thread(c);
+        t1.start();
+        t2.start();
+
+    }
+}
+
+class Customer implements Runnable{
+
+    private Food food;
+
+    Customer(Food food){
+        this.food=food;
+    }
+
+    @SneakyThrows
+    @Override
+    public void run() {
+        for (int i = 0; i < 20; i++) {
+            food.consume();
+        }
+    }
+}
+
+/**
+ * 生产者
+ */
+class Product implements Runnable{
+
+    private Food food;
+
+    Product(Food food){
+        this.food=food;
+    }
+
+    @SneakyThrows
+    @Override
+    public void run() {
+        for (int i = 0; i < 20; i++) {
+            if(i%2==0){
+                food.produce("锅包肉","酸甜口");
+
+            }else{
+                food.produce("佛跳墙","大补");
+            }
+        }
+    }
+}
+
+/**
+ * 食品
+ */
+class Food{
+    private String name;//食物名称
+    private String desc;//食物描述
+    private boolean flag = true;//true 表示可以生产，false表示可以消费
+
+    /**
+     * 生产产品
+     */
+    public synchronized void produce(String name,String desc) throws InterruptedException {
+        //不能生产
+        if(!flag){
+            this.wait();//线程进入等待状态，释放监视器的所有权（对象锁）
+        }
+
+        this.setName(name);
+        Thread.sleep(500);
+        this.setDesc(desc);
+        flag = !flag;
+        this.notify();
+    }
+
+    /**
+     * 消费产品
+     */
+    public synchronized void consume() throws InterruptedException {
+        //不能消费
+        if(flag){
+            this.wait();//线程进入等待状态，释放监视器的所有权（对象锁）
+        }
+        Thread.sleep(500);
+        System.out.println(this.name+"->"+this.desc);
+        flag = !flag;
+        this.notify();
+    }
+
+    Food(){}
+
+    public Food(String name, String desc) {
+        this.name = name;
+        this.desc = desc;
+    }
+
+    @Override
+    public String toString() {
+        return "Food{" +
+                "name='" + name + '\'' +
+                ", desc='" + desc + '\'' +
+                '}';
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDesc() {
+        return desc;
+    }
+
+    public void setDesc(String desc) {
+        this.desc = desc;
+    }
+}
+~~~
+
+## 线程池
+
+~~~java
+public class ThreadAllDemo {
+    public static void main(String[] args) throws InterruptedException {
+        //创建一个单线程池。此线程池保证所有任务的执行顺序按照任务的提交顺序执行
+        //ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+        //创建固定大小的线程池，每次提交一个任务就创建一个线程，知道线程打到线程池的最大大小
+        //线程会同时跑
+        // 创建一个有固定线程数量的线程池 N-1 模式 个别组件会用N + 1
+        // 非常适合保守的来限定对于服务器CPU资源的使用
+        //java.lang.Runtime.availableProcessors() 方法: 返回可用处理器的Java虚拟机的数量
+        ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()-1);
+        //
+        //
+        //
+        for (int i = 0; i < 20; i++) {
+            //submit方法会创建并且运行线程
+            executorService.submit(()->{
+                try {
+                    Thread.sleep(1000);
+                    System.out.println(Thread.currentThread().getName());
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+
+        //创建一个可缓存的线程池。如果线程池的大小超过了处理任务的所需线程，那么就会
+        //回收部分空闲的线程，当任务数增加，就会添加新线程来处理任务。用的不多。
+        //ExecutorService executorService = Executors.newCachedThreadPool();
+
+        //创建一个大小无限制的线程池，此线程池支持定时以及周期性执行任务的需求，需要赋初始大小
+        //ScheduledExecutorService executorService = Executors.newScheduledThreadPool(3);
+        // executorService.execute(new MyThread2());
+        // executorService.execute(new MyThread2());
+        //设置延迟执行任务时间
+        //executorService.schedule(new MyThread2(), 3000, TimeUnit.MILLISECONDS);//3000毫秒后再创建
+        // executorService.scheduleAtFixedRate(
+        //         () -> {
+        //             System.out.println(Thread.currentThread().getName());
+        //             try {
+        //                 Thread.sleep(1500);
+        //             } catch (InterruptedException e) {
+        //                 e.printStackTrace();
+        //             }
+        //             System.out.println("--->>>");
+        //         },
+        //         3,//3秒后开始创建
+        //         1,//每隔一秒创建一个
+        //         TimeUnit.SECONDS
+        // );
+        // executorService.scheduleWithFixedDelay(
+        //         () -> {
+        //             System.out.println(Thread.currentThread().getName());
+        //             try {
+        //                 Thread.sleep(1500);
+        //             } catch (InterruptedException e) {
+        //                 e.printStackTrace();
+        //             }
+        //             System.out.println("--->>>");
+        //         },
+        //         3,//3秒后开始创建
+        //         1,//每隔一秒创建一个
+        //         TimeUnit.SECONDS
+        // );
+        /*
+         scheduleAtFixedRate ，是以上一个任务开始的时间计时，period时间过去后，检测上一个任务是否执行完毕，
+         如果上一个任务执行完毕，则当前任务立即执行，如果上一个任务没有执行完毕，则需要等上一个任务执行完毕后立即执行。
+         scheduleWithFixedDelay，是以上一个任务结束时开始计时，period时间过去后，立即执行。
+         */
+
+        //Thread.sleep(60000);
+        //不shutdown结束不了
+        executorService.shutdown();// 类似于各种join，即是会等到所有提交的任务执行完毕以后，再关闭pool
+        // shutdown以后，不可以再提交新的任务了
+    }
+}
+
+class MyThread2 implements Runnable {
+
+    @SneakyThrows
+    @Override
+    public void run() {
+        for (int i = 0; i < 10; i++) {
+            System.out.println(Thread.currentThread().getName() + "run--" + i);
+            Thread.sleep(300);
+        }
+
+
+    }
+}
+~~~
+
+## Callable & Future
+
+~~~java
+/**
+ * 需求，创建多个线程，每个线程随机休眠时间，生成随机数，最后按照生成随机数的大小排列，且要加上休眠时间
+ */
+public class Main {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        ExecutorService pool = Executors.newFixedThreadPool(3);
+        Map<Integer,Integer> map = new HashMap<>();
+
+        for (int i = 0; i < 5; i++) {
+            Future<String> future = pool.submit(() -> {
+                int sleep =  new Random().nextInt(500)+100;
+                Thread.sleep(sleep);
+                return new Random().nextInt(100)+1+"-"+sleep;
+            });
+            String s = future.get();
+            int[] ss = new int[2];
+            int j = 0;
+            for (String str:s.split("-")) {
+                ss[j++] = Integer.parseInt(str);
+            }
+            map.put(ss[0],ss[1]);
+        }
+        List<Integer> list = new ArrayList();
+        for (int k: map.keySet()) {
+            list.add(k);
+        }
+        Collections.sort(list);
+        for (Integer num:list) {
+            System.out.println(num+"-"+map.get(num));
+        }
+        pool.shutdown();
+    }
+}
+
+
+public class Main {
+
+    public static void main(String[] args) throws InterruptedException, ExecutionException {
+
+        Thread.sleep(6000);
+    }
+
+    /**
+     * completeOnTimeout方法JDK9以后才有
+     */
+    private static void test8() {
+        // var future = CompletableFuture.supplyAsync(() -> {
+        //     LongTask.simulate(3000);
+        //     return 1;
+        // });
+        // try {
+        //     var result = future.completeOnTimeout(0, 1, TimeUnit.SECONDS)
+        //             .get();
+        //     System.out.println(result);
+        // } catch (InterruptedException | ExecutionException e) {
+        //     e.printStackTrace();
+        // }
+    }
+    private static void test7() {
+        CompletableFuture<Integer> future1 = CompletableFuture.supplyAsync(() -> {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println(1);
+            return 1;
+        });
+        CompletableFuture<Integer> future2 = CompletableFuture.supplyAsync(() -> {
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println(2);
+            return 2;
+        });
+        CompletableFuture<Integer> future3 = CompletableFuture.supplyAsync(() -> {
+            System.out.println(3);
+            return 3;
+        });
+        //anyof只要有一个被包括的线程执行完毕就执行下面的逻辑
+        CompletableFuture.anyOf(future1, future2, future3).thenAccept(System.out::println);
+
+    }
+
+    private static void test6() {
+        CompletableFuture<Integer> future1 = CompletableFuture.supplyAsync(() -> {
+            System.out.println(1);
+            return 1;
+        });
+        CompletableFuture<Integer> future2 = CompletableFuture.supplyAsync(() -> {
+            System.out.println(2);
+            return 2;
+        });
+        CompletableFuture<Integer> future3 = CompletableFuture.supplyAsync(() -> {
+            System.out.println(3);
+            return 3;
+        });
+        //allof需要等所有包括的线程执行完毕才能执行后续逻辑
+        CompletableFuture<Void> all = CompletableFuture.allOf(future1, future2, future3);
+        all.thenRun(() -> System.out.println("线程全部运行完毕"));
+    }
+
+    private static void test5() {
+        CompletableFuture<Integer> future1 = CompletableFuture.supplyAsync(() -> {
+            return 50;
+        });
+        CompletableFuture<Integer> future2 = CompletableFuture.supplyAsync(() -> {
+            return 6;
+        });
+
+        //Combine结果组合
+        future1.thenCombine(future2, (a, b) -> a * b).thenAccept(System.out::println);
+    }
+
+    private static void test4() {
+        CompletableFuture<String> future1 = CompletableFuture.supplyAsync(() -> {
+            return "1015387868@";
+        });
+
+        //Compose组合
+        future1.thenCompose(Main::future2).thenAccept(System.out::println);
+
+    }
+
+    private static CompletableFuture<String> future2(String s) {
+        return CompletableFuture.supplyAsync(() -> {
+            return s + "qq.com";
+        });
+    }
+
+    private static void test3() throws InterruptedException, ExecutionException {
+        CompletableFuture<Integer> future = CompletableFuture.supplyAsync(() -> 26);
+        future.thenApply(c -> Float.toString(c * 1.8f + 32))//转换类型
+                .thenAccept(System.out::println);
+    }
+
+    private static void test2() throws InterruptedException, ExecutionException {
+        //supplyAsync有返回值，而runAsync没有返回值
+        CompletableFuture<Integer> getNum = CompletableFuture.supplyAsync(() -> {
+            return 5;
+        });
+        Integer num = getNum.get();
+        System.out.println(num);
+    }
+
+    private static void test1() {
+        CompletableFuture.runAsync(() -> {
+            try {
+                Thread.sleep(1000);
+                System.out.println("AA");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).thenRunAsync(() -> System.out.println("BB")).thenRunAsync(() -> System.out.println("CC"));
+
+        System.out.println("这就是异步处理");
+    }
+}
+
+~~~
+
+
+
+## 线程的生命周期
+
+一、概述
+线程的生命周期包含5个阶段，包括：新建、就绪、运行、阻塞、死亡。
+当线程进入运行状态后，一般的操作系统是采用抢占式的方式来让线程获得CPU。所以CPU需要在多条线程之间切换，于是线程状态也会多次在运行、阻塞、就绪之间切换。
+
+二、新建
+新建：使用new方法，new出来线程，此时仅仅由JAVA虚拟机为其分配内存，并初始化成员变量的值。此时仅仅是个对象。
+
+三、就绪
+就绪：就是调用的线程的start()方法后，这时候线程处于等待CPU分配资源阶段，谁先抢的CPU资源，谁开始执行；
+该线程进入就绪状态，JAVA虚拟机会为其创建方法调用栈和程序计数器。线程的执行是由底层平台控制， 具有一定的随机性。
+
+四、运行
+运行：当就绪的线程被调度并获得CPU资源时，便进入运行状态，run方法定义了线程的操作和功能；（当处于就绪状态的线程获得CPU，它就会执行run()方法）
+对于一个单核cpu（或者是一个内核）来说，只能同时执行一条指令，而JVM通过快速切换线程执行指令来达到多线程的，真正处理器就能同时处理一条指令，只是这种切换速度很快，我们根本不会感知到。为了线程切换后能恢复到正确的执行位置，每条线程都有一个独立的程序计数器，各条线程之间计数器互不影响，独立存储。
+当一个线程开始运行后，它不可能一直持有CPU（除非该线程执行体非常短，瞬间就执行结束了）。所以，线程在执行过程中需要被中断，目的是让其它线程获得执行的CPU的机会。线程的调度细节取决于底层平台所采用的策略。
+
+五、阻塞
+阻塞：在运行状态的时候，可能因为某些原因导致运行状态的线程变成了阻塞状态。原因如下：
+
+1.等待I/O流的输入输出
+2.等待网络资源，即网速问题
+3.调用sleep（）方法，需要等sleep时间结束
+4.调用wait（）方法，需要调用notify（）唤醒线程
+5.其他线程执行join（）方法，当前线程则会阻塞，需要等其他线程执行完。
+
+状态切换图如下： 
+
+![23](../javase-image/23.png)
+
+六、死亡
+
+1、run()/call()方法执行完成，线程正常结束；
+2、线程抛出一个未捕获的Exception或Error；
+3、直接调用线程的stop()方法结束该线程——该方法容易导致死锁，通常不建议使用。
+
+
+
+# 网络编程
+
+## 先导
+
+一.概述：
+计算机网络
+        ●是指将地理位置不同的具有 独立功能的多台计算机及其外部设备，通过通信线路连接起来，在网络操作系统，网络管理软件及网络通信协议的管理和协调下，实现资源共享和信息传递的计算机系统
+ 网络编程
+        ●在网络通信协议下，实现网络互连的不同计算机上运行的程序间可以进行数据交换
+
+二.网络编程三要素：
+IP地址
+        ●要想让网络中的计算机能够 互相通信,必须为每台计算机指定一个标识号, 通过这个标识号来指定要接收数据的计算机和识别发送的计算机，而P地址就是这个标识号。也就是设备的标识
+端口
+        ●网络的通信，本质上是两个应用程序的通信。每台计算机都有很多的应用程序,那么在网络通信时，如何区分这些应用程序呢?如果说IP地址可以唯一标识网络中的设备 ，那么端口号就可以唯一标识设备中的应用程序了。也就是应用程序的标识
+协议
+        ●通过计算机网络可以使多台计算机实现连接,位于同一个网络中的计算机在进行连接和通信时需要遵守定的规则，这就好比在道路中行驶的汽车一定要遵守交通规则一样。在计算机网络中，这些连接和通信的规则被称为网络通信协议,它对数据的传输格式、传输速率、传输步骤等做了统规定,通信双方必须同时遵守才能完成数据交换。常见的协议有UDP协议和TCP协议
+
+一.IP地址
+        IP地址:是网络中设备的唯一标识。
+
+  1.ip地址的分类
+        ●IPv4: 是给每个连接在网络上的主机分配一个32bit地址。 按照TCP/IP规定，IP地址用二进制来表示，每个IP地址长32bit,也就是4个字节。例如一个采用二进制形式的IP地址是 “1100000  1010100 00000001 01000010* , 这么长的地址,处理起来也太费劲了。为了方便使用，IP地址经常被写成十进制的形式，中间使用符号"."分隔不同的字节。于是，上面的IP地址可以表示为 “192.168.1.66" 。IP地址的这种表示法叫做“点分十进制表示法”,这显然比1和0容易记忆得多
+        ●IPv6: 由于互联网的蓬勃发展, IP地址的需求量愈来愈大,但是网络地址资源有限，使得IP的分配越发紧张。为了扩大地址空间，通过IPv6重新定义地址空间，采用128位地址长度，每16个字节一组, 分成8组十六进制数，这样就解决了网络地址资源数量不够的问题
+
+2.IP常用命令：
+ipconfig：查看本机IP地址
+
+ping IP地址：检查网络是否连通
+
+3.IP地址操作类-InetAddress
+InetAddress类概述:
+         一个该类的对象就代表一个IP地址对象。
+
+InetAddress类成员方法：
+         static InetAddress getLocalHost()
+            * 获得本地主机IP地址对象。
+         static InetAddress getByName(String host)
+            * 根据IP地址字符串或主机名获得对应的IP地址对象。
+         String getHostName()
+            * 获得主机名。
+         String getHostAddress()
+            * 获得IP地址字符串。二.端口
+端口:
+
+设备上应用程序的唯一标识
+
+
+
+端口号:    
+
+用两个字节表示的整数，它的取值范围是0~65535中，0~1023之间的端口号用于些知名的网
+
+
+
+络服务和应用，普通的应用程序需要使用1024以上的端口号。如果端口号被另外一个服务或应用所占用,会导致当前程序启动失败。（失败咋换个端口号就行！！！）
+
+三.协议
+协议:    
+
+计算机网络中,连接和通信的规则被称为网络通信协议
+
+1.UDP协议
+●用户数据报协议(User Datagram Protocol)
+●UDP是无连接通信协议，即在数据传输时，数据的发送端和接收端不建立逻辑连接。简单来说，当一台计算机向另外一台计算机发送数据时,发送端不会确认接收端是否存在，就会发出数据，同样接收端在收到数据时，也不会向发送端反馈是否收到数据。
+由于使用UDP协议消耗资源小，通信效率高，所以通常都会用于音频、视频和普通数据的传输
+●例如视频会议通常采用UDP协议, 因为这种情况即使偶尔丢失一两个数据包， 也不会对接收结果产生太大影响。但是在使用UDP协议传送数据时,由于UDP的面向无连接性,不能保证数据的完整性，因此在传输重要数据时不建议使用UDP协议。
+
+
+2.TCP协议
+●传输控制协议 (Transmission Control Protocol)
+●TCP协议是面向连接的通信协议，即传输数据之前，在发送端和接收端建立逻辑连接，然后再传输数据,它提供了两台计算机之间可靠无差错的数据传输。在TCP连接中必须要明确客户端与服务器端，由客户端向服务端发出连接请求,每次连接的创建都需要经过"三次握手”
+●三次握手: TCP协议中，在发送数据的准备阶段，客户端与服务器之间的三次交互,以保证连接的可靠
+        第一次握手：客户端向服务器端发出连接请求，等待服务器确认
+        第二次握手：服务器端向客户端回送一个响应, 通知客户端收到了连接请求
+        第三次握手：客户端再次向服务器端发送确认信息，确认连接
+
+●完成三次握手,连接建立后，客户端和服务器就可以开始进行数据传输了。由于这种面向连接的特性,TCP协议可以保证传输数据的安全，所以应用十分广泛。例如.上传文件、下载文件、 浏览网页等
+
+## TCP
+
+~~~java
+服务器与客户端一对一
+public class Server {
+    public static void main(String[] args) {
+        try {
+            ServerSocket ss = new ServerSocket(8080);
+            //Socket是网络驱动层提供给应用程序编程的接口和一种访问机制
+            //没有客服端连接会在这里造成阻塞（accept()）
+            Socket accept = ss.accept();
+            BufferedReader br = new BufferedReader(
+                    new InputStreamReader(accept.getInputStream()));
+            //如果没有数据也会造成阻塞
+            String info = br.readLine();
+            System.out.println(info);
+
+            PrintStream ps = new PrintStream(
+                    new BufferedOutputStream(accept.getOutputStream()));
+            ps.println("你好客户端");
+            ps.flush();
+
+            ps.close();
+            br.close();
+            accept.close();
+            ss.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+public class Client {
+    public static void main(String[] args) {
+        try {
+            Socket socket = new Socket("127.0.0.1", 8080);
+            PrintStream ps = new PrintStream(
+                    new BufferedOutputStream(socket.getOutputStream()));
+            BufferedReader br = new BufferedReader(
+                    new InputStreamReader(socket.getInputStream()));
+
+            ps.println("你好服务器");
+            ps.flush();
+
+            String s = br.readLine();
+            System.out.println(s);
+
+            ps.close();
+            br.close();
+            socket.close();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+
+服务器与客户端一对多
+/**
+ * 同时处理多个客户端
+ */
+public class MutilServerDemo {
+    public static void main(String[] args) throws IOException {
+        ExecutorService es = Executors.newFixedThreadPool(3);
+        ServerSocket server = new ServerSocket(8080);
+        System.out.println("服务器已启动，正在等待连接。。。");
+        while(true){
+            Socket s = server.accept();
+            System.out.println(s.getInetAddress().getHostAddress());
+            es.execute(new UserThread(s));
+        }
+    }
+}
+
+/**
+ * 用来处理客户端请求的线程任务
+ */
+class UserThread implements Runnable{
+    private Socket socket;
+
+    public UserThread(Socket socket) {
+        this.socket = socket;
+    }
+
+    @SneakyThrows
+    @Override
+    public void run() {
+        BufferedReader br = new BufferedReader(
+                new InputStreamReader(socket.getInputStream()));
+        String info = br.readLine();
+        System.out.println(info);
+
+        PrintStream ps = new PrintStream(
+                new BufferedOutputStream(socket.getOutputStream()));
+        ps.println("echo"+info);
+        ps.flush();
+
+        ps.close();
+        br.close();
+    }
+}
+
+
+/**
+ * 处理多个客户端
+ * 主线程用于监听客户端的连接，每次有连接成功，开启一个线程来处理客户端的请求
+ */
+public class MutilClient {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        try {
+            Socket socket = new Socket("127.0.0.1", 8080);
+            PrintStream ps = new PrintStream(
+                    new BufferedOutputStream(socket.getOutputStream()));
+            BufferedReader br = new BufferedReader(
+                    new InputStreamReader(socket.getInputStream()));
+
+            System.out.println("请输入：");
+            String str = sc.nextLine();
+            ps.println(str);
+            ps.flush();
+
+            String s = br.readLine();
+            System.out.println(s);
+
+            ps.close();
+            br.close();
+            socket.close();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+~~~
+
+## 简易即时聊天
+
+~~~java
+/**
+ * 服务器端
+ */
+public class Server {
+    public static void main(String[] args) throws IOException {
+        //保存客户端处理的线程
+        Vector<UserThread> vector = new Vector<>();
+        ExecutorService es = Executors.newFixedThreadPool(5);
+
+        //创建服务器的Socket
+        ServerSocket server = new ServerSocket(6666);
+        System.out.println("服务器已启动，正在等待连接。。。");
+        while (true) {
+            Socket socket = server.accept();
+            UserThread user = new UserThread(socket, vector);
+            es.execute(user);
+        }
+    }
+}
+
+class UserThread implements Runnable {
+    private String name;//客户端名字
+    private Socket socket;
+    private Vector<UserThread> vector;//客户端集合
+    private ObjectInputStream ois;
+    private ObjectOutputStream oos;
+
+    UserThread(Socket socket, Vector<UserThread> vector) {
+        this.socket = socket;
+        this.vector = vector;
+        vector.add(this);
+    }
+
+    @Override
+    public void run() {
+        try {
+            System.out.println("客户端" + socket.getInetAddress().getHostAddress() + "已连接");
+            ois = new ObjectInputStream(socket.getInputStream());
+            oos = new ObjectOutputStream(socket.getOutputStream());
+            while (true) {
+                //读取消息对象
+                Message msg = (Message) ois.readObject();
+                //判断消息类型
+                int type = msg.getType();
+                switch (type) {
+                    case 1:
+                        name = msg.getFrom();
+                        msg.setInfo("欢迎你：");
+                        oos.writeObject(msg);
+                        break;
+                    case 2:
+                        String to = msg.getTo();
+                        UserThread ut;
+                        for (int i = 0; i < vector.size(); i++) {
+                            ut = vector.get(i);
+                            if (to.equals(ut.name) && ut != this) {
+                                ut.oos.writeObject(msg);
+                                break;
+                            }
+                        }
+                        break;
+                }
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+
+/**
+ * 客户端
+ */
+public class Client {
+    public static void main(String[] args)  {
+        Scanner input = new Scanner(System.in);
+        ExecutorService es = Executors.newSingleThreadExecutor();
+
+        try {
+            Socket socket = new Socket("127.0.0.1", 6666);
+            System.out.println("服务器连接成功");
+
+            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+
+            //向服务器发送登录信息
+            System.out.println("请输入名称：");
+            String name = input.nextLine();
+            Message msg = new Message(name, null, 1, null);
+            oos.writeObject(msg);
+            msg = (Message) ois.readObject();
+            System.out.println(msg.getInfo() + msg.getFrom());
+            //启动读取消息的线程
+            es.execute(new ReadInfoThread(ois));
+
+            //使用主线程来实现发送消息
+            boolean flag = true;
+            while (flag) {
+                msg = new Message();
+                System.out.println("To:");
+                msg.setTo(input.nextLine());
+                msg.setFrom(name);
+                msg.setType(2);
+                System.out.println("Info:");
+                msg.setInfo(input.nextLine());
+                oos.writeObject(msg);
+            }
+        } catch (ClassNotFoundException | IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+class ReadInfoThread implements Runnable {
+
+    ObjectInputStream in;
+    private boolean flag = true;
+
+    public ReadInfoThread(ObjectInputStream in) {
+        this.in = in;
+    }
+
+    public void setFlag(boolean flag) {
+        this.flag = flag;
+    }
+
+    @SneakyThrows
+    @Override
+    public void run() {
+
+        while (flag) {
+            Message message = (Message) in.readObject();
+            System.out.println("[" + message.getFrom() + "]对我说：" + message.getInfo());
+        }
+        if (in != null) {
+            in.close();
+        }
+    }
+}
+
+/**
+ * 消息包
+ */
+public class Message implements Serializable{
+    private String from;//发送者
+    private String to;//接受者
+    private int type;//消息种类
+    private String info;//消息
+
+    @Override
+    public String toString() {
+        return "Message{" +
+                "from='" + from + '\'' +
+                ", to='" + to + '\'' +
+                ", type=" + type +
+                ", info='" + info + '\'' +
+                '}';
+    }
+    public Message(){}
+    public Message(String from, String to, int type, String info) {
+        this.from = from;
+        this.to = to;
+        this.type = type;
+        this.info = info;
+    }
+
+    public String getFrom() {
+        return from;
+    }
+
+    public void setFrom(String from) {
+        this.from = from;
+    }
+
+    public String getTo() {
+        return to;
+    }
+
+    public void setTo(String to) {
+        this.to = to;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
+    }
+
+    public String getInfo() {
+        return info;
+    }
+
+    public void setInfo(String info) {
+        this.info = info;
+    }
+}
+
+~~~
+
+## UDP
+
+~~~java
+本地文件的copy
+
+public class UdpServer {
+    public static void main(String[] args) throws IOException {
+
+        DatagramSocket ds = new DatagramSocket(8080);//自己的端口号
+        byte[] bytes = new byte[1024];
+        DatagramPacket dp = new DatagramPacket(bytes,bytes.length);
+        StringBuilder strd = new StringBuilder();
+        BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream("D:\\39_OOP_接口_视频上传案例解耦.mp4"));
+        while (true){
+            ds.receive(dp);
+            byte[] data = dp.getData();
+            bos.write(data,0,dp.getLength());
+            bos.flush();
+            System.out.println(dp.getLength());
+            if(dp.getLength()<1024)break;
+        }
+        bos.close();
+        ds.close();
+    }
+}
+
+public class UdpClient {
+    public static void main(String[] args) throws IOException {
+        try(DatagramSocket ds = new DatagramSocket();
+            BufferedInputStream bis = new BufferedInputStream(new FileInputStream("D:\\千峰\\第一阶段\\class1\\Video\\39_OOP_接口_视频上传案例解耦.mp4"));
+        ){
+
+            byte[] bytes = new byte[1024];
+            int len;
+            DatagramPacket dp;
+            while((len = bis.read(bytes))!=-1){
+                //参数一：数据包  参数二：分组数据偏移量  参数三：目的地之 参数四：目的端口号
+                dp = new DatagramPacket(bytes,len, InetAddress.getByName("127.0.0.1"),8080);
+                ds.send(dp);
+            }
+        } catch (SocketException | FileNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+~~~
+
+## URL和Http
+
+~~~java
+/**
+ * 通过网址打开本地创建的网站
+ */
+public class HttpServer {
+    public static void main(String[] args) {
+        try {
+            ServerSocket ss = new ServerSocket(8080);
+            Socket socket = ss.accept();
+            OutputStream outputStream = socket.getOutputStream();
+            byte[] bytes = new byte[1024];
+            String data = "<html><body><h1>Hello, world!</h1></body></html>";
+            int length = data.getBytes(StandardCharsets.UTF_8).length;
+            outputStream.write("HTTP/1.0 200 OK\n".getBytes());
+            outputStream.write("Connection: close\n".getBytes());
+            outputStream.write("Content-Type: text/html\n".getBytes());
+            String s = "Content-Length: " + length + "\n";
+            outputStream.write(s.getBytes());
+            outputStream.write("\n".getBytes());
+            outputStream.write(data.getBytes());
+            outputStream.flush();
+
+
+            outputStream.close();
+            socket.close();
+            ss.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+/**
+ * 通过网址下载网页资源
+ */
+public class URLDemo {
+    public static void main(String[] args) throws IOException {
+        String p = "https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fp7.itc.cn%2Fimages01%2F20210603%2Fc49c216948aa49dc85cd851db43bcd31.jpeg&refer=http%3A%2F%2Fp7.itc.cn&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=auto?sec=1661569437&t=ac5a77bb4b1d891ace2f52bc5e1b7544";
+        URL url = new URL(p);
+        HttpURLConnection huc = (HttpURLConnection)url.openConnection();
+        BufferedInputStream in = new BufferedInputStream(huc.getInputStream());
+        BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream("D:\\1.jpg"));
+        byte[] bytes = new byte[1024];
+        int len;
+        while ((len = in.read(bytes))!=-1){
+            out.write(bytes,0,len);
+            out.flush();
+        }
+        in.close();
+        out.close();
+        System.out.println("下载成功");
+    }
+}
+~~~
+
+## MINA 框架
+
+~~~java
+/**
+ * 客户端
+ */
+public class Server {
+    public static void main(String[] args) {
+        //创建一个非阻塞的server端Socket NIO
+        SocketAcceptor acceptor = new NioSocketAcceptor();
+        DefaultIoFilterChainBuilder chain = acceptor.getFilterChain();
+        //设定一个过滤器，一行一行地读取数据（/r/n）
+        //chain.addLast("myChain", new ProtocolCodecFilter(new TextLineCodecFactory()));
+
+        //设定过滤器以对象为单位读取数据
+        chain.addLast("objectFilter",new ProtocolCodecFilter(new ObjectSerializationCodecFactory()));
+
+        //设置服务器端的消息处理器
+        acceptor.setHandler(new MinaServerHandler());
+        int port = 8080;//服务器端口号
+        try {
+            //绑定端口，启动服务器
+            acceptor.bind(new InetSocketAddress(port));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println("Mina Server running,listener on:"+port);
+    }
+}
+
+//服务器端的消息处理器
+public class MinaServerHandler extends IoHandlerAdapter {
+    /**
+     * 一次会话打开
+     * @param session 会话对象
+     * @throws Exception
+     */
+    @Override
+    public void sessionOpened(IoSession session) throws Exception {
+        super.sessionOpened(session);
+        System.out.println("Welcome client "+session.getRemoteAddress());
+    }
+
+    /**
+     * 会话关闭
+     * @param session 会话对象
+     * @throws Exception
+     */
+    @Override
+    public void sessionClosed(IoSession session) throws Exception {
+        super.sessionClosed(session);
+        System.out.println("Client closed");
+    }
+
+    /**
+     *
+     * @param session  //会话对象
+     * @param message //消息
+     * @throws Exception
+     */
+    @Override
+    public void messageReceived(IoSession session, Object message) throws Exception {
+        super.messageReceived(session, message);
+        //String msg = (String) message;//接收到的消息对象
+        Message msg = ((Message) message);
+        System.out.println("收到客户端发送的消息："+msg);
+        //向客户端发送消息
+        session.write("echo:"+msg);
+    }
+}
+//消息包
+public class Message implements Serializable {
+    String from;
+    String to;
+    int type;
+    String msg;
+
+    @Override
+    public String toString() {
+        return "Message{" +
+                "from='" + from + '\'' +
+                ", to='" + to + '\'' +
+                ", type=" + type +
+                ", msg='" + msg + '\'' +
+                '}';
+    }
+
+    public String getFrom() {
+        return from;
+    }
+
+    public void setFrom(String from) {
+        this.from = from;
+    }
+
+    public String getTo() {
+        return to;
+    }
+
+    public void setTo(String to) {
+        this.to = to;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
+    }
+
+    public String getMsg() {
+        return msg;
+    }
+
+    public void setMsg(String msg) {
+        this.msg = msg;
+    }
+}
+
+//客户端
+public class Client {
+    public static void main(String[] args) {
+        //创建连接
+        NioSocketConnector connector = new NioSocketConnector();
+        DefaultIoFilterChainBuilder chain = connector.getFilterChain();
+        //chain.addLast("myChain", new ProtocolCodecFilter(new TextLineCodecFactory()));
+        chain.addLast("objectFilter",new ProtocolCodecFilter(new ObjectSerializationCodecFactory()));
+
+        connector.setHandler(new MinaClientHandler());
+        connector.setConnectTimeoutMillis(10000);
+        //连接服务器
+        ConnectFuture cf = connector.connect(new InetSocketAddress("localhost", 8080));
+        cf.awaitUninterruptibly();//等待连接成功
+        Scanner in = new Scanner(System.in);
+        while (true) {
+            // System.out.println("请输入：");
+            // String s = in.nextLine();
+            // //发送消息
+            // cf.getSession().write(s);
+
+            Message msg = new Message();
+            System.out.println("From:");
+            msg.setFrom(in.nextLine());
+            System.out.println("To:");
+            msg.setTo(in.nextLine());
+            System.out.println("Info：");
+            msg.setMsg(in.nextLine());
+            msg.setType(1);
+            System.out.println(msg);
+            cf.getSession().write(msg);
+
+        }
+        //等待服务器连接关闭，结束长连接
+        //cf.getSession().getCloseFuture().awaitUninterruptibly();
+        //connector.dispose();
+    }
+}
+
+public class MinaClientHandler extends IoHandlerAdapter {
+    @Override
+    public void sessionOpened(IoSession session) throws Exception {
+        super.sessionOpened(session);
+        System.out.println("与服务器连接成功");
+    }
+
+    @Override
+    public void sessionClosed(IoSession session) throws Exception {
+        super.sessionClosed(session);
+        System.out.println("连接关闭");
+    }
+
+    @Override
+    public void messageReceived(IoSession session, Object message) throws Exception {
+        super.messageReceived(session, message);
+        //String msg = (String) message;
+        Message msg = ((Message) message);
+        System.out.println(msg);
+
+    }
+}
+~~~
+
+# 反射与内省
+
+## 利用反射获取对象信息
+
+![24](../javase-image/24.png)
+
+![25](../javase-image/25.png)
+
+![26](../javase-image/26.png)
+
+~~~java
+ /**
+     * 获取包和方法
+     */
+    @Test
+    public void test4() throws InvocationTargetException, IllegalAccessException {
+        Dog dog = new Dog("dai", 5, "黑色");
+        Class<Dog> dogClass = Dog.class;
+
+        //获取类的包
+        Package aPackage = dogClass.getPackage();
+        //包名
+        System.out.println(aPackage.getName());
+        //获取所有非私有方法，包括继承的公有方法
+        // Method[] method = dogClass.getMethods();
+        // for (Method m : method) {
+        //     System.out.println(m);
+        //     if (m.getName().equals("toString")) {
+        //         //invoke调用方法，第一个参数放对象，第二个参数或者之后的参数放被调用的方法所需的参数
+        //         String s = (String) m.invoke(dog);
+        //         System.out.println(s);
+        //     }
+        // }
+
+
+        //访问类本身所有方法，包括私有，不包括父类的方法
+        Method[] declaredMethods = dogClass.getDeclaredMethods();
+        for (Method m : declaredMethods) {
+            System.out.println(m);
+            //private方法没法直接调用
+            if (m.getName().equals("runs"))
+            //设置私有方法可以被访问（除去访问修饰符的检查）
+            {
+                m.setAccessible(true);
+                m.invoke(dog);
+            }
+        }
+    }
+
+
+    /**
+     * 获取对象的属性
+     */
+    @Test
+    public void test3() {
+        Class<Dog> dogClass = Dog.class;
+        //只能获取非私有属性
+        //Field[] fields = dogClass.getFields();
+        //System.out.println(fields.length);
+
+        //能获取所有属性
+        Field[] declaredFields = dogClass.getDeclaredFields();
+        //System.out.println(declaredFields.length);
+        for (Field field : declaredFields) {
+            //修饰符
+            System.out.print(Modifier.toString(field.getModifiers()) + " ");
+            //类型
+            System.out.print(field.getType() + " ");
+            //名称
+            System.out.println(field.getName());
+        }
+    }
+
+    /**
+     * 通过反射来实例化对象
+     */
+    @Test
+    public void test2() {
+        Class<Dog> dogClass = Dog.class;
+        try {
+            //通过Class对象实例化类对象，调用了默认无参的构造方法
+            Dog dog = dogClass.newInstance();
+            //获取所有的构造方法
+            Constructor<?>[] constructors = dogClass.getConstructors();
+            for (Constructor constructor : constructors) {
+                //构造方法的名字
+                System.out.println(constructor.getName());
+                //构造方法的参数数量
+                System.out.println(constructor.getParameterCount());
+            }
+
+            try {
+                //获取一个指定的构造器
+                Constructor<Dog> constructor = dogClass.getConstructor(String.class, int.class, String.class);
+                //通过调用带参构造器创建一个对象
+                Dog dog1 = constructor.newInstance("chen", 2, "红色");
+            } catch (NoSuchMethodException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
+     * 获取Class对象的三种方法
+     */
+    @Test
+    public void test1() {
+        //通过对象的getClass方法
+        Dog dog = new Dog("dai", 5, "黑色");
+        Class aClass = dog.getClass();
+
+        //通过类.class
+        Class bClass = Dog.class;
+
+        //通过Class.forName方法
+        try {
+            Class cClass = Class.forName("day24.Dog");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+
+    }
+}
+
+~~~
+
+## 动态代理
+
+~~~java
+/**
+ * 用于动态生成代理对象
+ */
+public class CreateProxy implements InvocationHandler {
+
+    private Object target;//被代理的对象
+
+    //用于创建代理对象的方法
+    public Object create(Object target){
+        this.target = target;
+        //getClassLoader()获得类加载器
+        //getInterfaces()获得实现的接口
+        //最后一个参数放入实现InvocationHandler接口的类
+        //生成代理对象
+        Object proxy = Proxy.newProxyInstance(target.getClass().getClassLoader()
+                , target.getClass().getInterfaces(), this);
+
+        return proxy;
+    }
+
+    /**
+     * 代理对象要执行的方法
+     * @param proxy   代理类对象
+     * @param method  被代理对象的方法
+     * @param args    被代理对象方法的参数
+     * @return
+     * @throws Throwable
+     */
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        System.out.println("正在代理中。。。");
+        method.invoke(target,args);
+        System.out.println("完成本次代理");
+        return null;
+    }
+}
+
+
+
+public interface Action {
+    public void driver();
+}
+
+public class Benz implements Action{
+    @Override
+    public void driver() {
+        System.out.println("驾驶奔驰车找车位");
+    }
+}
+
+public interface Subject {
+    public void shopping();
+}
+
+
+public class Person implements Subject{
+
+    @Override
+    public void shopping() {
+        System.out.println("付款，买到心仪的衣服");
+    }
+}
+
+
+public class TestDemo {
+
+    @Test
+    public void tes1t(){
+        CreateProxy cp = new CreateProxy();//用来创建代理对象
+        Action car = new Benz();// 需要被代理的类
+        Action proxy = (Action) cp.create(car);//生成代理类
+        proxy.driver();//invoke
+    }
+
+
+    @Test
+    public void test(){
+        CreateProxy cp = new CreateProxy();//用来创建代理对象
+        Subject person = new Person();// 需要被代理的类
+        Subject proxy = (Subject) cp.create(person);//生成代理类
+        proxy.shopping();//invoke
+    }
+}
+~~~
+
+## javaBean
+
+~~~java
+public class Emp {
+    private String name;
+    private int age;
+    private int salary;
+
+    @Override
+    public String toString() {
+        return "Emp{" +
+                "name='" + name + '\'' +
+                ", age=" + age +
+                ", salary=" + salary +
+                '}';
+    }
+
+    public String getInFo(){
+        return "返回字符串";
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+    public int getSalary() {
+        return salary;
+    }
+
+    public void setSalary(int salary) {
+        this.salary = salary;
+    }
+}
+
+
+public class BeanTest {
+    @Test
+    public void test() throws InvocationTargetException, IllegalAccessException {
+        //从客户端获取到的数据：
+        String name = "bin";
+        String age = "18";
+        String salary = "8500";
+
+        Emp emp = new Emp();
+        BeanUtils.setProperty(emp,"name",name);
+        BeanUtils.setProperty(emp,"age",age);
+        BeanUtils.setProperty(emp,"salary",salary);
+        System.out.println(emp);
+    }
+}
+~~~
 
