@@ -2915,7 +2915,7 @@ class MyRunable3 implements Runnable {
 
 ~~~java
 /**
- * sleep:让线程进入休眠状态，染出CPU时间片，不是反对象监视器的所有权（对象锁）
+ * sleep:让线程进入休眠状态，让出CPU时间片，不释放对象监视器的所有权（对象锁）
  * wait:让线程进入等待状态，让出CPU的时间片，并释放对象监视器的所有权，等待其他线程通过notify方法来唤醒
  *
  */
@@ -4340,5 +4340,604 @@ public class BeanTest {
         System.out.println(emp);
     }
 }
+~~~
+
+## 内省Introspector相关API
+
+~~~java
+/**
+ * 通过内省API来装配一个Bean对象，Bean对象的值通过配置文件来获取
+ * 目的是为了提高维护性
+ */
+public class BeanFactory {
+    public static Properties prop = new Properties();
+
+    //使用静态代码块读取配置文件
+    static {
+        InputStream in = Thread.currentThread().getContextClassLoader()
+                .getResourceAsStream("day25/introspector/config.properties");
+        try {
+            prop.load(in);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 获取一个Bean
+     * @param name
+     * @return
+     */
+    public static Object getBean(String name){
+        Object bean = null;
+        String beanName = prop.getProperty(name);
+        try {
+            Class<?> aClass = Class.forName(beanName);
+
+            //创建一个对象
+            bean = aClass.newInstance();
+            //通过类信息获取javaBean的描述信息
+            BeanInfo beanInfo = Introspector.getBeanInfo(aClass);
+            //通过javaBean的描述信息，获取该类所有属性描述器
+            PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
+            for (int i = 0; i < propertyDescriptors.length; i++) {
+                Method writeMethod = propertyDescriptors[i].getWriteMethod();
+                String propertyName = propertyDescriptors[i].getName();
+                if("username".equals(propertyName)){
+                    writeMethod.invoke(bean,prop.getProperty("bean.username"));
+                }else if("password".equals(propertyName)){
+                    writeMethod.invoke(bean,prop.getProperty("bean.password"));
+                } else if ("url".equals(propertyName)){
+                    writeMethod.invoke(bean,prop.getProperty("bean.url"));
+                }
+            }
+            return bean;
+        } catch (ClassNotFoundException | IntrospectionException e) {
+            e.printStackTrace();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+
+        return bean;
+    }
+}
+
+
+public class Config {
+    private String username;
+    private String password;
+    private String url;
+
+    @Override
+    public String toString() {
+        return "Config{" +
+                "username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", url='" + url + '\'' +
+                '}';
+    }
+
+    public Config() {
+    }
+
+    public Config(String username, String password, String url) {
+        this.username = username;
+        this.password = password;
+        this.url = url;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+}
+
+
+public class TestDemo {
+    @Test
+    public void test1() {
+        Config bean = (Config) BeanFactory.getBean("bean.name");
+
+        System.out.println(bean);
+    }
+}
+
+// 配置文件config.properties
+bean.name=day25.introspector.Config
+bean.username=admin
+bean.password=12345
+bean.url=www.baidu.com
+~~~
+
+## 可配置的AOP框架
+
+~~~java
+//配置文件config.properties
+bean.target=day25.aop.IManagerImpl
+bean.advice=day25.aop.LogAdvice2
+bean=day25.aop.ProxyFactory
+
+/**
+ * 切面
+ */
+public interface Advice {
+    public void beforeAdvice();
+    public void afterAdvice();
+}
+
+//切面实现一
+public class LogAdvice implements Advice{
+    @Override
+    public void beforeAdvice() {
+        System.out.println("start time:"+System.currentTimeMillis());
+    }
+
+    @Override
+    public void afterAdvice() {
+        System.out.println("end time:"+System.currentTimeMillis());
+    }
+}
+
+//切面实现二
+public class LogAdvice2 implements Advice{
+    @Override
+    public void beforeAdvice() {
+        System.out.println(1);
+    }
+
+    @Override
+    public void afterAdvice() {
+        System.out.println(2);
+    }
+}
+
+//主对象
+public interface IManager {
+    public void add(String item);
+}
+
+//主对象实现一
+public class IManagerImpl implements IManager{
+    private ArrayList<String> list = new ArrayList<>();
+
+    @Override
+    public void add(String item) {
+        list.add(item);
+        System.out.println(item+"添加完毕");
+    }
+}
+
+//主对象实现二
+public class IManagerImpl2 implements IManager{
+    @Override
+    public void add(String item) {
+        System.out.println("加入"+item);
+    }
+}
+
+//代理类工厂
+public class ProxyFactory implements InvocationHandler {
+    private Object target;
+    private Advice advice;
+
+    public Object getTarget() {
+        return target;
+    }
+
+    public void setTarget(Object target) {
+        this.target = target;
+    }
+
+    public Advice getAdvice() {
+        return advice;
+    }
+
+    public void setAdvice(Advice advice) {
+        this.advice = advice;
+    }
+
+    public Object getProxy() {
+        Object proxy = Proxy.newProxyInstance(target.getClass().getClassLoader(), target.getClass().getInterfaces(), this);
+        return proxy;
+    }
+
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        advice.beforeAdvice();
+        Object obj = method.invoke(target, args);
+        advice.afterAdvice();
+        return obj;
+    }
+}
+//Bean工厂
+public class BeanFactory {
+    Properties prop = new Properties();
+
+    public BeanFactory(InputStream in) {
+        try {
+            prop.load(in);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 获取一个Bean实例
+     *
+     * @param name
+     * @return
+     */
+    public Object getBean(String name) {
+        String className = prop.getProperty(name);
+        Object bean = null;
+        try {
+            //获取ProxyFactoryBean的class对象
+            Class<?> aClass = Class.forName(className);
+            //实例化对象
+            bean = aClass.newInstance();
+            //根据配置文件实例化target和advice对象
+            Object target = Class.forName(prop.getProperty(name + ".target")).newInstance();
+            Object advice = Class.forName(prop.getProperty(name + ".advice")).newInstance();
+            //通过内省实现对ProxyFactoryBean的属性赋值
+            BeanInfo beanInfo = Introspector.getBeanInfo(aClass);
+            //属性描述器
+            PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
+            for (PropertyDescriptor p:propertyDescriptors) {
+                Method writeMethod = p.getWriteMethod();
+                String propertyName = p.getName();
+                if("target".equals(propertyName)){
+                    writeMethod.invoke(bean,target);
+                }else if("advice".equals(propertyName)){
+                    writeMethod.invoke(bean,advice);
+                }
+
+            }
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (IntrospectionException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        return bean;
+    }
+}
+//测试类
+public class AopTest {
+    @Test
+    public void test1(){
+        //1、读取配置文件
+        InputStream in = Thread.currentThread().getContextClassLoader()
+                .getResourceAsStream("day25/aop/bean.properties");
+        //2、创建Bean的工厂类对象
+         BeanFactory beanFactory = new BeanFactory(in);
+         //3、获取代理对象
+        ProxyFactory proxyFactoryBean = (ProxyFactory)beanFactory.getBean("bean");
+        IManager proxy = (IManager)proxyFactoryBean.getProxy();
+        proxy.add("我是一只猫");
+    }
+}
+~~~
+
+## 单例优化
+
+~~~java
+/**
+ * 单例模式优化
+ * 1、使用同步保正线程安全synchronized
+ * 2、使用volatile关键字
+ *    volatile提醒编译器它后面所定义的变量随时都有可能改变，因此编译后的程序每次需要存储或读
+ *    取这个变量的时候，都会直接从变量地址中读取数据。如果没有volatile关键字，则编译器可能优化读取和存储，可能暂时使用寄存器中的值，如果这个变量由别的程序更新了的话，将出现不一致的现象。l
+ * 3、防止反射调用私有构造方法
+ * 4、让单例类序例化安全(加上Serializable让单例可以被序列化)
+ */
+public class Singleton implements Serializable {
+    //加入volatile
+    private volatile static Singleton singleton = null;
+
+
+    private Singleton() {
+        //防止反射加入代码
+        if(singleton!=null){
+            throw new RuntimeException("此类对象为单例模式，已经被实例化");
+        }
+    }
+
+    public static Singleton getSingleton() {
+        //虽然加上同步锁，但是之后每次提取都会进行同步，影响性能，所以在外面套个判断
+        if (singleton == null) {
+            //如果多线程同时访问，会new出多个对象，破坏单例模式的初衷
+            //所以加上同步锁
+            synchronized (Singleton.class) {
+                if (singleton == null) {
+                    singleton = new Singleton();
+                }
+
+            }
+        }
+        return singleton;
+    }
+}
+
+~~~
+
+# 泛型、正则、枚举、注解
+
+## 泛型
+
+~~~java
+/**
+ * 泛型类
+ * 泛型在编译期检查，在编译后会被擦除
+ *
+ * @param <T> 参数化类型
+ */
+public class Node<T> {
+    private T data;
+
+    public Node(){
+
+    }
+    public Node(T data){
+        this.data = data;
+    }
+
+    public T getData() {
+        return data;
+    }
+
+    public void setData(T data) {
+        this.data = data;
+    }
+}
+
+//测试类
+public class GenericDemo {
+
+    @Test
+    public void test4(){
+        Map<Integer,String> map = new HashMap<>();
+        map.put(1,"son");
+        map.put(2,"join");
+
+        Set<Map.Entry<Integer,String>> entrySet = map.entrySet();
+
+        for (Map.Entry entry:entrySet) {
+            System.out.println(entry.getKey()+" "+entry.getValue());
+        }
+    }
+
+    @Test
+    public void test3(){
+        String[] array = {"son","join","tom"};
+        String [] str = func(array,0,1);
+        System.out.println(Arrays.toString(str));
+    }
+
+    /**
+     *
+     * @param array
+     * @param i
+     * @param t
+     * @param <T>
+     * @return
+     */
+    public static <T> T[] func(T[] array,int i,int t){
+        //交换位置
+        T temp = array[i];
+        array[i] = array[t];
+        array[t] = temp;
+        return array;
+    }
+
+
+    //使用通配符定义泛型，此时只能输出，不能修改
+    public static void getData2(Node<?> node) {
+        System.out.println(node.getData());
+    }
+
+    //只能是Number类及其子类
+    public static void getData1(Node<? extends Number> node) {
+        System.out.println(node.getData());
+    }
+
+    @Test
+    public void test2() {
+        Node<String> num1 = new Node<>("hallo");
+        Node<Integer> num2 = new Node<>(20);
+        Node<Number> num3 = new Node<>(30);
+        getData1(num2);
+    }
+
+    @Test
+    public void test1() {
+        Node<String> num1 = new Node<>("李帆");
+        Node<Integer> num2 = new Node<>(10);
+
+
+        System.out.println(num1.getData());
+        System.out.println(num2.getData());
+
+    }
+}
+~~~
+
+## 正则
+
+~~~java
+/**
+ * 常用的正则表达式：
+ * 1、手机号码："[1][3-9]\\d{9}"
+ * 2、用户名，字符开头，数字字母下划线组合"[a-zA-Z]"+[\\w|_]*
+ * 3、IP地址："\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3}"
+ * 4、网址："http://\\w+.\\w+.\\s*"
+ * 如果需求，查Pattern JDK
+ */
+public class RegexDemo {
+    @Test
+    public void test1(){
+
+        //这两个正则表达式相等
+        String s = "520";
+        boolean a = s.matches("[0-9]+");
+        boolean b = s.matches("\\d+");
+        System.out.println(a+" "+b);
+
+
+        //创建一个匹配模板
+        //0到多个a开头，最后一个b结尾
+        Pattern p = Pattern.compile("a*b");
+        Matcher matcher = p.matcher("aaabb");
+        boolean flag = matcher.matches();//匹配
+        System.out.println(flag);
+
+    }
+}
+~~~
+
+## 枚举
+
+~~~java
+/**
+ * 定义一个枚举类型
+ * 只要用了这个类型，就会自动调用所有对象的构造方法
+ * 当有抽象方法时，每一个枚举必须分别实现这个方法
+ */
+public enum Color implements Info{
+    RED(10){
+        @Override
+        public String getColor2() {
+            return "red";
+        }
+    },GREEN(20) {
+        @Override
+        public String getColor2() {
+            return null;
+        }
+    },BLUE() {
+        @Override
+        public String getColor2() {
+            return null;
+        }
+    };
+    private int color;
+    private Color(){}
+    private Color(int color){
+        this.color = color;
+    }
+
+    @Override
+    public int getColor() {
+        return color;
+    }
+
+    public abstract String getColor2();
+}
+
+
+public interface Info {
+    public int getColor();
+}
+
+public enum Singleton {
+    SINGLETON;
+
+    public void method(){
+        System.out.println("method");
+    }
+}
+
+
+
+/**
+ * 枚举是和类，接口一个等级的类型
+ */
+public class EnumDemo {
+
+    public static final int RED = 0x1;
+    public static final int GREEN = 0x1;
+    public static final int BLUE = 0x3;
+    public int color;
+    @Test
+    public void test1(){
+        color = RED;
+        color = 2;
+    }
+
+    public Color colorEnum;
+
+    /**
+     * 定义枚举类型后，取值只能是枚举里列出来的值
+     */
+    @Test
+    public void test2(){
+        colorEnum = Color.GREEN;
+        System.out.println(colorEnum);
+        System.out.println(colorEnum.name());
+        System.out.println(colorEnum.ordinal());
+        System.out.println(colorEnum.toString());
+
+        //获取所有枚举对象
+        Color[] values = Color.values();
+        System.out.println(Arrays.toString(values));
+    }
+
+    @Test
+    public void test3(){
+        //存储Color里面所有类型
+        EnumSet<Color> set = EnumSet.allOf(Color.class);
+        for (Color c:set) {
+            System.out.println(c);
+        }
+    }
+
+    @Test
+    public void test4(){
+        System.out.println(Color.RED.getColor());
+        System.out.println(Color.RED.getColor2());
+    }
+
+    /**
+     * 使用枚举实现单例设计模式
+     */
+    @Test
+    public void test5(){
+        Singleton.SINGLETON.method();
+    }
+
+}
+~~~
+
+## 注解
+
+~~~java
+
 ~~~
 
