@@ -4938,6 +4938,319 @@ public class EnumDemo {
 ## 注解
 
 ~~~java
+/**
+ * 自定义注解
+ */
 
+@Documented  //用于生成文档
+@Retention(RetentionPolicy.RUNTIME)//表示该注解的应用范围
+@Target(ElementType.TYPE)//注解的注解，表明注解的作用
+public @interface MyAnnotation {
+    //定义变量
+    public String name();
+
+    public int age() default 4;//给变量设置默认值
+
+    public String[] like();//定义一个数组变量
+
+    public Color color();//定义一个枚举类型变量
+}
+
+
+@MyAnnotation(name="bin",like = {"鲸鱼","锅包肉","鲫鱼"},color = Color.RED)
+public class Cat {
+    private String name;
+    private int age;
+    private Color color;
+    private String[] like;
+
+    public Color getColor() {
+        return color;
+    }
+
+    public void setColor(Color color) {
+        this.color = color;
+    }
+
+    public String[] getLike() {
+        return like;
+    }
+
+    public void setLike(String[] like) {
+        this.like = like;
+    }
+
+    public Cat() {}
+
+    public Cat(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    //标记了一个过时的方法
+    @Deprecated
+    public String printInfo() {
+        return "Cat{" +
+                "name='" + name + '\'' +
+                ", age=" + age +
+                '}';
+    }
+
+
+    @Override
+    public String toString() {
+        return "Cat{" +
+                "name='" + name + '\'' +
+                ", age=" + age +
+                ", color=" + color +
+                ", like=" + Arrays.toString(like) +
+                '}';
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+
+}
+
+
+public enum Color {
+    RED,GREEN,YELLOW
+}
+
+
+public class AnnotationDemo {
+
+    //通过反射处理注解
+    @Test
+    public void test2() throws InstantiationException, IllegalAccessException {
+        Class<Cat> catClass = Cat.class;
+        //获取类上应用的指定注解
+        MyAnnotation annotation = catClass.getAnnotation(MyAnnotation.class);
+        System.out.println(annotation.name());//可以拿到所有注解的值
+        Cat cat = catClass.newInstance();
+        cat.setName(annotation.name());
+        cat.setAge(annotation.age());
+        cat.setColor(annotation.color());
+        cat.setLike(annotation.like());
+        System.out.println(cat);
+    }
+
+    @Test
+    public void test1(){
+        Cat cat  = new Cat();
+        cat.printInfo();//调用了一个过时的方法
+
+        @SuppressWarnings("all")//消除警告（所有）
+        List list = new ArrayList();
+        list.add("");
+    }
+}
+~~~
+
+# XML与JSON
+
+## SAX
+
+~~~java
+public class Person {
+    private String personid;
+    private String name;
+    private String address;
+    private String tel;
+    private String fax;
+    private String email;
+
+    @Override
+    public String toString() {
+        return "Person{" +
+                "id='" + personid + '\'' +
+                ", name='" + name + '\'' +
+                ", address='" + address + '\'' +
+                ", tel='" + tel + '\'' +
+                ", fax='" + fax + '\'' +
+                ", email='" + email + '\'' +
+                '}';
+    }
+
+    public String getPersonid() {
+        return personid;
+    }
+
+    public void setPersonid(String personid) {
+        this.personid = personid;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getTel() {
+        return tel;
+    }
+
+    public void setTel(String tel) {
+        this.tel = tel;
+    }
+
+    public String getFax() {
+        return fax;
+    }
+
+    public void setFax(String fax) {
+        this.fax = fax;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+}
+
+//person.xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<people><person personid="E01"><name>Tom</name><address>长沙</address><tel>18675757575</tel><fax>0731</fax><email>101@qq.com</email></person>
+    <person personid="E02">
+        <name>Tim</name>
+        <address>北京</address>
+        <tel>18674747474</tel>
+        <fax>0700</fax>
+        <email>538@qq.com</email>
+    </person>
+</people>
+
+
+/**
+ * SAX解析的特点：
+ * 1、基于事件驱动
+ * 2、顺序读取，速度快
+ * 3、不能任意读取节点，灵活性差
+ * 4、解析时占用的内存小
+ * 5、SAX更适用于在性能要求更高的设备上使用，比如安卓开发
+ */
+public class PersonHandler extends DefaultHandler {
+    private List<Person> list = null;
+    private Person p;//当前正在解析的Person对象
+    private String tag;//用于记录当前正在解析的标签
+
+    public List<Person> getList(){
+        return list;
+    }
+
+    //开始解析文档时调用
+    @Override
+    public void startDocument() throws SAXException {
+        super.startDocument();
+        list = new ArrayList<>();
+        System.out.println("开始解析文档");
+    }
+
+    //在xml文档解析结束时调用
+    @Override
+    public void endDocument() throws SAXException {
+        super.endDocument();
+        System.out.println("解析文档结束");
+    }
+
+    /**
+     * 解析开始元素（标签）时调用
+     *
+     * @param uri        命名空间
+     * @param localName  不带前缀的标签名
+     * @param qName      带前缀的标签名
+     * @param attributes 当前标签的属性集合
+     * @throws SAXException
+     */
+
+    @Override
+    public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
+        super.startElement(uri, localName, qName, attributes);
+        if ("person".equals(qName)) {
+            p = new Person();
+            String personid = attributes.getValue("personid");
+            p.setPersonid(personid);
+        }
+        tag = qName;
+        System.out.println("startElement--"+qName);
+    }
+
+    //解析结束元素时调用
+    @Override
+    public void endElement(String uri, String localName, String qName) throws SAXException {
+        super.endElement(uri, localName, qName);
+        if ("person".equals(qName)) {
+            list.add(p);
+        }
+        tag = null;
+        System.out.println("endElement--"+qName);
+    }
+
+    //解析文本内容时调用
+    @Override
+    public void characters(char[] ch, int start, int length) throws SAXException {
+        super.characters(ch, start, length);
+        if(tag!=null){
+            if ("name".equals(tag))
+                p.setName(new String(ch,start,length));
+            else if("address".equals(tag))
+                p.setAddress(new String(ch,start,length));
+            else if("tel".equals(tag))
+                p.setTel(new String(ch,start,length));
+            else if("fax".equals(tag))
+                p.setFax(new String(ch,start,length));
+            else if("email".equals(tag))
+                p.setEmail(new String(ch,start,length));
+        }
+        System.out.println(ch);
+    }
+}
+
+
+public class XMLDemo {
+
+    @Test
+    public void test() throws ParserConfigurationException, SAXException, IOException {
+        //1、创建一个SAX解析器工厂对象
+        SAXParserFactory saxParserFactory = SAXParserFactory.newInstance();
+        //2、通过工厂对象创建SAX解析器
+        SAXParser saxParser = saxParserFactory.newSAXParser();
+        //3、创建一个数据处理器
+        PersonHandler personHandler = new PersonHandler();
+        //4、开始解析
+        InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream("day26/xml/person.xml");
+        saxParser.parse(is,personHandler);
+        List<Person> list = personHandler.getList();
+        System.out.println(list);
+    }
+}
 ~~~
 
